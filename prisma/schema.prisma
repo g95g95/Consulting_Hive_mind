@@ -5,9 +5,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ============================================
@@ -333,13 +332,16 @@ model Engagement {
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
-  booking      Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  messages     Message[]
-  notes        Note[]
-  artifacts    ArtifactLink[]
+  booking        Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  messages       Message[]
+  notes          Note[]
+  artifacts      ArtifactLink[]
   checklistItems ChecklistItem[]
-  transferPack TransferPack?
-  reviews      Review[]
+  transferPack   TransferPack?
+  reviews        Review[]
+  patterns       Pattern[]
+  prompts        Prompt[]
+  stacks         StackTemplate[]
 }
 
 enum EngagementStatus {
@@ -544,6 +546,7 @@ enum EntitlementStatus {
 model Pattern {
   id              String          @id @default(cuid())
   creatorId       String
+  engagementId    String?
   title           String
   description     String
   content         String          // Anonymized pattern content
@@ -555,12 +558,14 @@ model Pattern {
   updatedAt       DateTime        @updatedAt
 
   creator       User           @relation(fields: [creatorId], references: [id])
+  engagement    Engagement?    @relation(fields: [engagementId], references: [id])
   redactionJob  RedactionJob?  @relation(fields: [redactionJobId], references: [id])
 }
 
 model Prompt {
   id              String          @id @default(cuid())
   creatorId       String
+  engagementId    String?
   title           String
   description     String?
   content         String          // Sanitized prompt
@@ -572,23 +577,30 @@ model Prompt {
   updatedAt       DateTime        @updatedAt
 
   creator       User           @relation(fields: [creatorId], references: [id])
+  engagement    Engagement?    @relation(fields: [engagementId], references: [id])
   redactionJob  RedactionJob?  @relation(fields: [redactionJobId], references: [id])
 }
 
 model StackTemplate {
   id              String          @id @default(cuid())
   creatorId       String
+  engagementId    String?
   title           String
   description     String
   content         String          // Text-based stack description
   category        String?
   tags            String[]        @default([])
+  uiTech          String?         // UI/Frontend technology (e.g., React, Vue, Angular)
+  backendTech     String?         // Backend technology (e.g., Node.js, Python, Go)
+  databaseTech    String?         // Database technology (e.g., PostgreSQL, MongoDB)
+  releaseTech     String?         // Release/deployment technology (e.g., Vercel, Docker, K8s)
   status          HiveItemStatus  @default(PENDING_REVIEW)
   redactionJobId  String?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
   creator       User           @relation(fields: [creatorId], references: [id])
+  engagement    Engagement?    @relation(fields: [engagementId], references: [id])
   redactionJob  RedactionJob?  @relation(fields: [redactionJobId], references: [id])
 }
 

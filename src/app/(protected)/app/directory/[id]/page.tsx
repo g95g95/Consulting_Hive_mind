@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { CreateClientProfileButton } from "@/components/create-client-profile-button";
 import Link from "next/link";
 import {
   Star,
@@ -15,6 +16,7 @@ import {
   ExternalLink,
   Calendar,
   ArrowLeft,
+  AlertCircle,
 } from "lucide-react";
 
 export default async function ConsultantProfilePage({
@@ -74,6 +76,10 @@ export default async function ConsultantProfilePage({
       : null;
 
   const isOwnProfile = currentUser?.id === consultant.userId;
+
+  // Check if current user can book (has client profile or is CLIENT/BOTH)
+  const canBook = currentUser?.role === "CLIENT" || currentUser?.role === "BOTH";
+  const isConsultantOnly = currentUser?.role === "CONSULTANT";
 
   return (
     <div className="space-y-6">
@@ -180,22 +186,26 @@ export default async function ConsultantProfilePage({
               <CardTitle className="text-white">Skills & Expertise</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {consultant.skills.map((skill) => (
-                  <Badge
-                    key={skill.id}
-                    variant="outline"
-                    className="border-slate-600 text-slate-300"
-                  >
-                    {skill.skillTag.name}
-                    {skill.level !== "INTERMEDIATE" && (
-                      <span className="ml-1 text-amber-400">
-                        ({skill.level.toLowerCase()})
-                      </span>
-                    )}
-                  </Badge>
-                ))}
-              </div>
+              {consultant.skills.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {consultant.skills.map((skill) => (
+                    <Badge
+                      key={skill.id}
+                      variant="outline"
+                      className="border-slate-600 text-slate-300"
+                    >
+                      {skill.skillTag.name}
+                      {skill.level !== "INTERMEDIATE" && (
+                        <span className="ml-1 text-amber-400">
+                          ({skill.level.toLowerCase()})
+                        </span>
+                      )}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-slate-500 text-sm">No skills listed yet.</p>
+              )}
             </CardContent>
           </Card>
 
@@ -264,7 +274,7 @@ export default async function ConsultantProfilePage({
                 </div>
               )}
 
-              {!isOwnProfile && (
+              {!isOwnProfile && canBook && (
                 <>
                   <Link href={`/app/requests/new?consultant=${consultant.userId}`}>
                     <Button className="w-full bg-amber-500 hover:bg-amber-600 text-slate-900">
@@ -276,6 +286,25 @@ export default async function ConsultantProfilePage({
                     You can also create a general request and let consultants come to you.
                   </p>
                 </>
+              )}
+
+              {!isOwnProfile && isConsultantOnly && (
+                <div className="space-y-3">
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm text-amber-400 font-medium">
+                          Create a client profile to book
+                        </p>
+                        <p className="text-xs text-amber-300/80 mt-1">
+                          As a consultant, you need to create a client profile first to book other consultants.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <CreateClientProfileButton consultantId={consultant.userId} />
+                </div>
               )}
 
               {isOwnProfile && (

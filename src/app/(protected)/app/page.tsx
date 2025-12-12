@@ -18,8 +18,11 @@ export default async function DashboardPage() {
 
   if (!user) return null;
 
+  // Determine if user is consultant only (to show clients) or client/both (to show consultants)
+  const showClientsInDirectory = user.role === "CONSULTANT";
+
   // Fetch dashboard stats
-  const [requestCount, engagementCount, consultantCount] = await Promise.all([
+  const [requestCount, engagementCount, directoryCount] = await Promise.all([
     db.request.count({
       where: { creatorId: user.id },
     }),
@@ -33,12 +36,18 @@ export default async function DashboardPage() {
         },
       },
     }),
-    db.consultantProfile.count({
-      where: {
-        isAvailable: true,
-        consentDirectory: true,
-      },
-    }),
+    // Count consultants or clients based on user role
+    showClientsInDirectory
+      ? db.clientProfile.count({
+          where: { userId: { not: user.id } },
+        })
+      : db.consultantProfile.count({
+          where: {
+            isAvailable: true,
+            consentDirectory: true,
+            userId: { not: user.id },
+          },
+        }),
   ]);
 
   // Fetch recent engagements
@@ -74,7 +83,7 @@ export default async function DashboardPage() {
     take: 5,
   });
 
-  const isConsultant = user.role === "CONSULTANT" || user.role === "BOTH";
+  const isConsultantOnly = user.role === "CONSULTANT";
   const isClient = user.role === "CLIENT" || user.role === "BOTH";
 
   return (
@@ -120,12 +129,12 @@ export default async function DashboardPage() {
         <Card className="bg-slate-800/50 border-slate-700">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-slate-400">
-              Available Consultants
+              {showClientsInDirectory ? "Available Clients" : "Available Consultants"}
             </CardTitle>
             <Users className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-white">{consultantCount}</div>
+            <div className="text-2xl font-bold text-white">{directoryCount}</div>
             <p className="text-xs text-slate-500">In the directory</p>
           </CardContent>
         </Card>
@@ -176,7 +185,7 @@ export default async function DashboardPage() {
             <Link href="/app/directory">
               <Button className="w-full justify-start bg-slate-700 hover:bg-slate-600 text-white">
                 <Users className="mr-2 h-4 w-4" />
-                Browse consultants
+                {showClientsInDirectory ? "Browse clients" : "Browse consultants"}
                 <ArrowRight className="ml-auto h-4 w-4" />
               </Button>
             </Link>

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { redactSensitiveContent } from "@/lib/ai/provider";
+// TODO: Re-enable PII redaction when implemented
+// import { redactSensitiveContent } from "@/lib/ai/provider";
 
 export async function POST(request: Request) {
   try {
@@ -11,52 +12,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { type, title, description, content, useCase, tags } = await request.json();
+    const {
+      type,
+      title,
+      description,
+      content,
+      useCase,
+      tags,
+      // Stack-specific fields
+      uiTech,
+      backendTech,
+      databaseTech,
+      releaseTech,
+    } = await request.json();
 
     if (!type || !title || !content) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Create redaction job
-    const redactionJob = await db.redactionJob.create({
-      data: {
-        originalText: content,
-        status: "PROCESSING",
-      },
-    });
-
-    // Run redaction
-    let redactedContent = content;
-    let detectedPII: string[] = [];
-    let detectedSecrets: string[] = [];
-
-    try {
-      const redactionResult = await redactSensitiveContent(content);
-      redactedContent = redactionResult.redactedText;
-      detectedPII = redactionResult.detectedPII;
-      detectedSecrets = redactionResult.detectedSecrets;
-
-      await db.redactionJob.update({
-        where: { id: redactionJob.id },
-        data: {
-          redactedText: redactedContent,
-          detectedPII,
-          detectedSecrets,
-          status: "COMPLETED",
-          completedAt: new Date(),
-        },
-      });
-    } catch (error) {
-      console.error("Redaction error:", error);
-      await db.redactionJob.update({
-        where: { id: redactionJob.id },
-        data: {
-          status: "FAILED",
-          errorMessage: "Redaction failed",
-        },
-      });
-      // Continue with original content but mark for manual review
-    }
+    // TODO: Re-enable PII redaction when implemented
+    // For now, bypass redaction and use content as-is
+    const redactedContent = content;
 
     // Create the contribution based on type
     let contribution;
@@ -71,7 +47,7 @@ export async function POST(request: Request) {
             content: redactedContent,
             tags: tags || [],
             status: "PENDING_REVIEW",
-            redactionJobId: redactionJob.id,
+            // redactionJobId: redactionJob.id, // TODO: Re-enable
           },
         });
         break;
@@ -86,7 +62,7 @@ export async function POST(request: Request) {
             useCase,
             tags: tags || [],
             status: "PENDING_REVIEW",
-            redactionJobId: redactionJob.id,
+            // redactionJobId: redactionJob.id, // TODO: Re-enable
           },
         });
         break;
@@ -99,8 +75,12 @@ export async function POST(request: Request) {
             description: description || "",
             content: redactedContent,
             tags: tags || [],
+            uiTech: uiTech || null,
+            backendTech: backendTech || null,
+            databaseTech: databaseTech || null,
+            releaseTech: releaseTech || null,
             status: "PENDING_REVIEW",
-            redactionJobId: redactionJob.id,
+            // redactionJobId: redactionJob.id, // TODO: Re-enable
           },
         });
         break;
@@ -116,7 +96,7 @@ export async function POST(request: Request) {
         action: "HIVE_CONTRIBUTION",
         entity: type.charAt(0).toUpperCase() + type.slice(1),
         entityId: contribution.id,
-        metadata: { detectedPII, detectedSecrets },
+        metadata: {}, // TODO: Add PII detection results when re-enabled
       },
     });
 

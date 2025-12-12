@@ -143,7 +143,7 @@ async function main() {
   console.log(`Created test user: ${testUser.email}`)
 
   // Create consultant profile for test user
-  await prisma.consultantProfile.upsert({
+  const consultantProfile = await prisma.consultantProfile.upsert({
     where: { userId: testUser.id },
     update: {},
     create: {
@@ -158,6 +158,28 @@ async function main() {
       consentHiveMind: true,
     },
   })
+
+  // Add skills to test consultant
+  const testSkills = ['Full-Stack Development', 'Large Language Models', 'API Design', 'Cloud Architecture']
+  for (const skillName of testSkills) {
+    const skillTag = await prisma.skillTag.findFirst({ where: { name: skillName } })
+    if (skillTag) {
+      await prisma.consultantSkill.upsert({
+        where: {
+          profileId_skillTagId: {
+            profileId: consultantProfile.id,
+            skillTagId: skillTag.id,
+          },
+        },
+        update: {},
+        create: {
+          profileId: consultantProfile.id,
+          skillTagId: skillTag.id,
+        },
+      })
+    }
+  }
+  console.log(`Added ${testSkills.length} skills to test consultant`)
 
   // Create client profile for test user
   await prisma.clientProfile.upsert({

@@ -14,6 +14,7 @@ import {
   Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface User {
   id: string;
@@ -37,7 +38,7 @@ const userNavigation = [
 
 export function AppSidebar({ user }: { user: User }) {
   return (
-    <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:border-r lg:border-slate-700/50 lg:bg-slate-800/30">
+    <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:border-r lg:border-border lg:bg-sidebar/30">
       <AppSidebarContent user={user} />
     </aside>
   );
@@ -49,16 +50,18 @@ export function AppSidebarContent({ user }: { user: User }) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 py-4">
-        {/* Quick Actions */}
-        <div className="px-3 mb-6">
-          <Link
-            href="/app/requests/new"
-            className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-900 font-medium rounded-lg transition-colors"
-          >
-            <PlusCircle className="h-4 w-4" />
-            New Request
-          </Link>
-        </div>
+        {/* Quick Actions - Only for CLIENT or BOTH (not pure CONSULTANT) */}
+        {(user.role === "CLIENT" || user.role === "BOTH") && (
+          <div className="px-3 mb-6">
+            <Link
+              href="/app/requests/new"
+              className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-colors"
+            >
+              <PlusCircle className="h-4 w-4" />
+              New Request
+            </Link>
+          </div>
+        )}
 
         {/* Main Navigation */}
         <nav className="space-y-1 px-3">
@@ -72,8 +75,8 @@ export function AppSidebarContent({ user }: { user: User }) {
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-slate-700/50 text-white"
-                    : "text-slate-400 hover:text-white hover:bg-slate-700/30"
+                    ? "bg-sidebar-accent text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50"
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -85,7 +88,7 @@ export function AppSidebarContent({ user }: { user: User }) {
 
         {/* Divider */}
         <div className="my-6 px-6">
-          <div className="border-t border-slate-700/50" />
+          <div className="border-t border-border" />
         </div>
 
         {/* User Navigation */}
@@ -99,8 +102,8 @@ export function AppSidebarContent({ user }: { user: User }) {
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-slate-700/50 text-white"
-                    : "text-slate-400 hover:text-white hover:bg-slate-700/30"
+                    ? "bg-sidebar-accent text-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50"
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -116,8 +119,8 @@ export function AppSidebarContent({ user }: { user: User }) {
               className={cn(
                 "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 pathname.startsWith("/app/admin")
-                  ? "bg-slate-700/50 text-white"
-                  : "text-slate-400 hover:text-white hover:bg-slate-700/30"
+                  ? "bg-sidebar-accent text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/50"
               )}
             >
               <Shield className="h-5 w-5" />
@@ -127,9 +130,14 @@ export function AppSidebarContent({ user }: { user: User }) {
         </nav>
       </div>
 
+      {/* Theme Toggle */}
+      <div className="px-3 mb-2">
+        <ThemeToggle />
+      </div>
+
       {/* Footer */}
-      <div className="p-4 border-t border-slate-700/50">
-        <div className="text-xs text-slate-500 text-center">
+      <div className="p-4 border-t border-border">
+        <div className="text-xs text-muted-foreground text-center">
           Scaffolding, not a toll bridge.
         </div>
       </div>

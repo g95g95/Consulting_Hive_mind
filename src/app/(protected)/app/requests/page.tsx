@@ -13,6 +13,7 @@ export default async function RequestsPage() {
   if (!user) return null;
 
   const isConsultant = user.role === "CONSULTANT" || user.role === "BOTH";
+  const canCreateRequests = user.role === "CLIENT" || user.role === "BOTH";
 
   // Fetch my requests
   const myRequests = await db.request.findMany({
@@ -86,14 +87,18 @@ export default async function RequestsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Requests</h1>
-          <p className="text-slate-400 mt-1">Manage your consultation requests</p>
+          <p className="text-slate-400 mt-1">
+            {canCreateRequests ? "Manage your consultation requests" : "Browse and respond to consultation requests"}
+          </p>
         </div>
-        <Link href="/app/requests/new">
-          <Button className="bg-amber-500 hover:bg-amber-600 text-slate-900">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            New Request
-          </Button>
-        </Link>
+        {canCreateRequests && (
+          <Link href="/app/requests/new">
+            <Button className="bg-amber-500 hover:bg-amber-600 text-slate-900">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              New Request
+            </Button>
+          </Link>
+        )}
       </div>
 
       <Tabs defaultValue="my-requests" className="space-y-6">
@@ -117,12 +122,18 @@ export default async function RequestsPage() {
           {myRequests.length === 0 ? (
             <Card className="bg-slate-800/50 border-slate-700">
               <CardContent className="py-12 text-center">
-                <p className="text-slate-400 mb-4">You haven&apos;t created any requests yet.</p>
-                <Link href="/app/requests/new">
-                  <Button className="bg-amber-500 hover:bg-amber-600 text-slate-900">
-                    Create Your First Request
-                  </Button>
-                </Link>
+                <p className="text-slate-400 mb-4">
+                  {canCreateRequests
+                    ? "You haven't created any requests yet."
+                    : "You don't have any requests associated with your account."}
+                </p>
+                {canCreateRequests && (
+                  <Link href="/app/requests/new">
+                    <Button className="bg-amber-500 hover:bg-amber-600 text-slate-900">
+                      Create Your First Request
+                    </Button>
+                  </Link>
+                )}
               </CardContent>
             </Card>
           ) : (

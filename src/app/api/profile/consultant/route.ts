@@ -10,7 +10,18 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { bio, headline, hourlyRate, linkedinUrl } = await request.json();
+    const {
+      bio,
+      headline,
+      hourlyRate,
+      linkedinUrl,
+      portfolioUrl,
+      timezone,
+      yearsExperience,
+      isAvailable,
+      consentDirectory,
+      consentHiveMind,
+    } = await request.json();
 
     const consultantProfile = await db.consultantProfile.upsert({
       where: { userId: user.id },
@@ -19,6 +30,12 @@ export async function PUT(request: Request) {
         headline,
         hourlyRate,
         linkedinUrl,
+        portfolioUrl,
+        timezone,
+        yearsExperience,
+        isAvailable,
+        consentDirectory,
+        consentHiveMind,
       },
       create: {
         userId: user.id,
@@ -26,6 +43,12 @@ export async function PUT(request: Request) {
         headline,
         hourlyRate,
         linkedinUrl,
+        portfolioUrl,
+        timezone,
+        yearsExperience,
+        isAvailable: isAvailable ?? true,
+        consentDirectory: consentDirectory ?? true,
+        consentHiveMind: consentHiveMind ?? false,
         languages: ["English"],
       },
     });

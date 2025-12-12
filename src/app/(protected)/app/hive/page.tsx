@@ -1,45 +1,222 @@
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
-import { BookOpen, Sparkles, Layers, Plus, Lock } from "lucide-react";
+import { Plus, Lock } from "lucide-react";
+import { HiveDataTable } from "@/components/hive-data-table";
 
 export default async function HiveMindPage() {
   const user = await getCurrentUser();
 
   if (!user) return null;
 
-  // Fetch approved patterns, prompts, and stacks
-  const [patterns, prompts, stacks] = await Promise.all([
+  // Fetch engagements that have at least one approved contribution (or user's own)
+  // OR engagements where user is participant
+  const engagements = await db.engagement.findMany({
+    where: {
+      OR: [
+        // Engagements with approved patterns
+        { patterns: { some: { status: "APPROVED" } } },
+        // Engagements with approved prompts
+        { prompts: { some: { status: "APPROVED" } } },
+        // Engagements with approved stacks
+        { stacks: { some: { status: "APPROVED" } } },
+        // User's own contributions (pending or approved)
+        { patterns: { some: { creatorId: user.id } } },
+        { prompts: { some: { creatorId: user.id } } },
+        { stacks: { some: { creatorId: user.id } } },
+      ],
+    },
+    include: {
+      booking: {
+        include: {
+          request: true,
+          client: true,
+          consultant: true,
+        },
+      },
+      patterns: {
+        where: {
+          OR: [
+            { status: "APPROVED" },
+            { creatorId: user.id },
+          ],
+        },
+        include: { creator: true },
+        orderBy: { createdAt: "desc" },
+      },
+      prompts: {
+        where: {
+          OR: [
+            { status: "APPROVED" },
+            { creatorId: user.id },
+          ],
+        },
+        include: { creator: true },
+        orderBy: { createdAt: "desc" },
+      },
+      stacks: {
+        where: {
+          OR: [
+            { status: "APPROVED" },
+            { creatorId: user.id },
+          ],
+        },
+        include: { creator: true },
+        orderBy: { createdAt: "desc" },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Also fetch standalone contributions (not linked to engagements)
+  const [standalonePatterns, standalonePrompts, standaloneStacks] = await Promise.all([
     db.pattern.findMany({
-      where: { status: "APPROVED" },
+      where: {
+        engagementId: null,
+        OR: [
+          { status: "APPROVED" },
+          { creatorId: user.id },
+        ],
+      },
       include: { creator: true },
       orderBy: { createdAt: "desc" },
-      take: 20,
     }),
     db.prompt.findMany({
-      where: { status: "APPROVED" },
+      where: {
+        engagementId: null,
+        OR: [
+          { status: "APPROVED" },
+          { creatorId: user.id },
+        ],
+      },
       include: { creator: true },
       orderBy: { createdAt: "desc" },
-      take: 20,
     }),
     db.stackTemplate.findMany({
-      where: { status: "APPROVED" },
+      where: {
+        engagementId: null,
+        OR: [
+          { status: "APPROVED" },
+          { creatorId: user.id },
+        ],
+      },
       include: { creator: true },
       orderBy: { createdAt: "desc" },
-      take: 20,
     }),
   ]);
+
+  // Transform engagements for the data table
+  const engagementItems = engagements.map((e) => ({
+    id: e.id,
+    type: "engagement" as const,
+    title: e.booking.request?.title || "Direct Consultation",
+    description: e.booking.request?.refinedSummary || e.booking.request?.rawDescription || "No description",
+    clientName: `${e.booking.client.firstName || ""} ${e.booking.client.lastName || ""}`.trim() || "Anonymous",
+    consultantName: `${e.booking.consultant.firstName || ""} ${e.booking.consultant.lastName || ""}`.trim() || "Anonymous",
+    clientId: e.booking.clientId,
+    consultantId: e.booking.consultantId,
+    createdAt: e.createdAt,
+    patterns: e.patterns.map((p) => ({
+      id: p.id,
+      title: p.title,
+      description: p.description,
+      content: p.content,
+      category: p.category,
+      tags: p.tags,
+      status: p.status,
+      creator: p.creator,
+      creatorId: p.creatorId,
+    })),
+    prompts: e.prompts.map((p) => ({
+      id: p.id,
+      title: p.title,
+      description: p.description || "",
+      content: p.content,
+      useCase: p.useCase,
+      tags: p.tags,
+      status: p.status,
+      creator: p.creator,
+      creatorId: p.creatorId,
+    })),
+    stacks: e.stacks.map((s) => ({
+      id: s.id,
+      title: s.title,
+      description: s.description,
+      content: s.content,
+      category: s.category,
+      tags: s.tags,
+      uiTech: s.uiTech,
+      backendTech: s.backendTech,
+      databaseTech: s.databaseTech,
+      releaseTech: s.releaseTech,
+      status: s.status,
+      creator: s.creator,
+      creatorId: s.creatorId,
+    })),
+  }));
+
+  // Add standalone items as a special "General Library" row if any exist
+  const hasStandalone = standalonePatterns.length > 0 || standalonePrompts.length > 0 || standaloneStacks.length > 0;
+
+  const standaloneItem = hasStandalone ? {
+    id: "standalone",
+    type: "standalone" as const,
+    title: "General Library",
+    description: "Contributions not linked to specific engagements",
+    clientName: "-",
+    consultantName: "-",
+    clientId: null,
+    consultantId: null,
+    createdAt: new Date(),
+    patterns: standalonePatterns.map((p) => ({
+      id: p.id,
+      title: p.title,
+      description: p.description,
+      content: p.content,
+      category: p.category,
+      tags: p.tags,
+      status: p.status,
+      creator: p.creator,
+      creatorId: p.creatorId,
+    })),
+    prompts: standalonePrompts.map((p) => ({
+      id: p.id,
+      title: p.title,
+      description: p.description || "",
+      content: p.content,
+      useCase: p.useCase,
+      tags: p.tags,
+      status: p.status,
+      creator: p.creator,
+      creatorId: p.creatorId,
+    })),
+    stacks: standaloneStacks.map((s) => ({
+      id: s.id,
+      title: s.title,
+      description: s.description,
+      content: s.content,
+      category: s.category,
+      tags: s.tags,
+      uiTech: s.uiTech,
+      backendTech: s.backendTech,
+      databaseTech: s.databaseTech,
+      releaseTech: s.releaseTech,
+      status: s.status,
+      creator: s.creator,
+      creatorId: s.creatorId,
+    })),
+  } : null;
+
+  const allItems = standaloneItem ? [standaloneItem, ...engagementItems] : engagementItems;
 
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Hive Mind</h1>
-          <p className="text-slate-400 mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Hive Mind</h1>
+          <p className="text-muted-foreground mt-1">
             Shared cognitive residue from the community &mdash; patterns, prompts, and stacks.
           </p>
         </div>
@@ -67,159 +244,8 @@ export default async function HiveMindPage() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="patterns" className="space-y-6">
-        <TabsList className="bg-slate-800 border border-slate-700">
-          <TabsTrigger value="patterns" className="data-[state=active]:bg-slate-700">
-            <BookOpen className="h-4 w-4 mr-2" />
-            Patterns ({patterns.length})
-          </TabsTrigger>
-          <TabsTrigger value="prompts" className="data-[state=active]:bg-slate-700">
-            <Sparkles className="h-4 w-4 mr-2" />
-            Prompts ({prompts.length})
-          </TabsTrigger>
-          <TabsTrigger value="stacks" className="data-[state=active]:bg-slate-700">
-            <Layers className="h-4 w-4 mr-2" />
-            Stacks ({stacks.length})
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="patterns" className="space-y-4">
-          {patterns.length === 0 ? (
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardContent className="py-12 text-center">
-                <BookOpen className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-400 mb-2">No patterns yet</p>
-                <p className="text-sm text-slate-500">
-                  Be the first to contribute an architectural pattern!
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {patterns.map((pattern) => (
-                <Card key={pattern.id} className="bg-slate-800/50 border-slate-700">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-white">{pattern.title}</CardTitle>
-                    <CardDescription className="text-slate-400">
-                      {pattern.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <pre className="text-sm text-slate-300 bg-slate-700/30 p-3 rounded-lg overflow-x-auto max-h-40">
-                      {pattern.content.slice(0, 500)}
-                      {pattern.content.length > 500 && "..."}
-                    </pre>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {pattern.tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="outline"
-                          className="text-xs border-slate-600 text-slate-300"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                    <p className="text-xs text-slate-500 mt-3">
-                      Contributed by {pattern.creator.firstName}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="prompts" className="space-y-4">
-          {prompts.length === 0 ? (
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardContent className="py-12 text-center">
-                <Sparkles className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-400 mb-2">No prompts yet</p>
-                <p className="text-sm text-slate-500">
-                  Share your favorite prompts with the community!
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {prompts.map((prompt) => (
-                <Card key={prompt.id} className="bg-slate-800/50 border-slate-700">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-white">{prompt.title}</CardTitle>
-                    {prompt.useCase && (
-                      <CardDescription className="text-slate-400">
-                        Use case: {prompt.useCase}
-                      </CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    <pre className="text-sm text-slate-300 bg-slate-700/30 p-3 rounded-lg overflow-x-auto max-h-40 whitespace-pre-wrap">
-                      {prompt.content.slice(0, 500)}
-                      {prompt.content.length > 500 && "..."}
-                    </pre>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {prompt.tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="outline"
-                          className="text-xs border-slate-600 text-slate-300"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="stacks" className="space-y-4">
-          {stacks.length === 0 ? (
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardContent className="py-12 text-center">
-                <Layers className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-400 mb-2">No stack templates yet</p>
-                <p className="text-sm text-slate-500">
-                  Share your recommended technology stacks!
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {stacks.map((stack) => (
-                <Card key={stack.id} className="bg-slate-800/50 border-slate-700">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-white">{stack.title}</CardTitle>
-                    <CardDescription className="text-slate-400">
-                      {stack.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <pre className="text-sm text-slate-300 bg-slate-700/30 p-3 rounded-lg overflow-x-auto max-h-40 whitespace-pre-wrap">
-                      {stack.content.slice(0, 500)}
-                      {stack.content.length > 500 && "..."}
-                    </pre>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      {stack.tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="outline"
-                          className="text-xs border-slate-600 text-slate-300"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      {/* Data Table */}
+      <HiveDataTable items={allItems} currentUserId={user.id} />
     </div>
   );
 }

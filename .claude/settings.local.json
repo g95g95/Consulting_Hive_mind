@@ -6,7 +6,12 @@
       "Bash(npm install:*)",
       "Bash(npx shadcn@latest init:*)",
       "Bash(npx shadcn@latest add:*)",
-      "Bash(npx prisma init)"
+      "Bash(npx prisma init)",
+      "Bash(copy \"C:\\Users\\pisel\\Desktop\\Guloi\\Consulting_Hive_mind\\.env.local\" \"C:\\Users\\pisel\\Desktop\\Guloi\\Consulting_Hive_mind\\.env\")",
+      "Bash(npx prisma generate)",
+      "Bash(npx prisma db push:*)",
+      "Bash(ls:*)",
+      "Bash(head:*)"
     ],
     "deny": [],
     "ask": []

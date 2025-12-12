@@ -16,24 +16,24 @@ interface User {
 
 export function AppHeader({ user }: { user: User }) {
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-700/50 bg-slate-900/95 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60">
+    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center px-4 lg:px-6">
         {/* Mobile menu */}
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="lg:hidden text-slate-400">
+            <Button variant="ghost" size="icon" className="lg:hidden text-muted-foreground">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-64 bg-slate-800 border-slate-700 p-0">
+          <SheetContent side="left" className="w-64 bg-sidebar border-border p-0">
             <AppSidebarContent user={user} />
           </SheetContent>
         </Sheet>
 
         {/* Logo */}
         <Link href="/app" className="flex items-center gap-2 ml-2 lg:ml-0">
-          <Hexagon className="h-6 w-6 text-amber-500" />
-          <span className="font-semibold text-white hidden sm:inline">Hive Mind</span>
+          <Hexagon className="h-6 w-6 text-primary" />
+          <span className="font-semibold text-foreground hidden sm:inline">Hive Mind</span>
         </Link>
 
         {/* Spacer */}
@@ -41,7 +41,7 @@ export function AppHeader({ user }: { user: User }) {
 
         {/* User info and menu */}
         <div className="flex items-center gap-4">
-          <span className="text-sm text-slate-400 hidden sm:inline">
+          <span className="text-sm text-muted-foreground hidden sm:inline">
             {user.firstName} {user.lastName}
           </span>
           <UserButton

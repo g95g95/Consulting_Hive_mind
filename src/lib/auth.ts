@@ -38,7 +38,15 @@ export async function getOrCreateUser() {
   let user = await db.user.findUnique({
     where: { clerkId: userId },
     include: {
-      consultantProfile: true,
+      consultantProfile: {
+        include: {
+          skills: {
+            include: {
+              skillTag: true,
+            },
+          },
+        },
+      },
       clientProfile: true,
     },
   })
@@ -68,7 +76,15 @@ export async function getOrCreateUser() {
         imageUrl: clerkUser.imageUrl,
       },
       include: {
-        consultantProfile: true,
+        consultantProfile: {
+          include: {
+            skills: {
+              include: {
+                skillTag: true,
+              },
+            },
+          },
+        },
         clientProfile: true,
       },
     })

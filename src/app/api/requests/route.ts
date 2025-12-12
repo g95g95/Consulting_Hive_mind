@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { sendEmail, getNewRequestEmailHtml } from "@/lib/email";
 
 export async function GET() {
   try {
@@ -103,10 +104,11 @@ export async function POST(request: Request) {
       }
     }
 
-    // If direct consultant booking, create an offer
+    // If direct consultant booking, create an offer and send email
     if (consultantId) {
       const consultantProfile = await db.consultantProfile.findUnique({
         where: { userId: consultantId },
+        include: { user: true },
       });
 
       if (consultantProfile) {
@@ -122,6 +124,22 @@ export async function POST(request: Request) {
         await db.request.update({
           where: { id: newRequest.id },
           data: { status: "MATCHING", isPublic: false },
+        });
+
+        // Send email notification to consultant
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        const requestUrl = `${baseUrl}/app/requests`;
+
+        await sendEmail({
+          to: consultantProfile.user.email,
+          subject: `New consultation request: ${title}`,
+          html: getNewRequestEmailHtml({
+            consultantName: consultantProfile.user.firstName || "Consultant",
+            clientName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || "A client",
+            requestTitle: title,
+            requestSummary: refinedSummary || rawDescription || "No description provided",
+            requestUrl,
+          }),
         });
       }
     }
