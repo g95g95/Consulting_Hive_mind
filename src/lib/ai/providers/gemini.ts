@@ -42,7 +42,7 @@ export async function generateGeminiCompletion(
   options: GeminiCompletionOptions
 ): Promise<GeminiResponse> {
   const {
-    model = "gemini-1.5-pro",
+    model = process.env.GEMINI_MODEL || "gemini-2.0-flash",
     systemPrompt,
     userMessage,
     maxTokens = 2000,

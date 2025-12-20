@@ -151,32 +151,93 @@ The platform uses a multi-agent orchestrated architecture powered by Google Gemi
 | MatcherAgent | `src/lib/ai/agents/matcher.ts` | Score consultant-request matches with explanations |
 | TransferAgent | `src/lib/ai/agents/transfer.ts` | Generate knowledge transfer packs |
 | RedactionAgent | `src/lib/ai/agents/redaction.ts` | Detect and redact PII/secrets |
+| HiveContributionAgent | `src/lib/ai/agents/hive-contribution.ts` | Refine and improve hive library contributions |
+
+#### Agent Capabilities
+
+**IntakeAgent** (`src/lib/ai/agents/intake.ts`)
+- `refine(rawDescription)`: Trasforma descrizioni grezze in scope strutturati
+- `classifyDomain(summary)`: Classifica domini e suggerisce skill
+- `detectSensitiveData(content)`: Rileva dati sensibili nel contenuto
+
+**MatcherAgent** (`src/lib/ai/agents/matcher.ts`)
+- `findMatches(requestId, details)`: Trova e valuta match consultant-request
+- `calculateScore(request, consultant)`: Calcola score singolo con spiegazione
+
+**TransferAgent** (`src/lib/ai/agents/transfer.ts`)
+- `generate(engagementData)`: Genera Transfer Pack completo
+- `generateSummary(context)`: Genera solo executive summary
+- `extractDecisions(notes, messages)`: Estrae decisioni chiave
+- `generateRunbook(decisions, outcome)`: Genera runbook step-by-step
+- `generateChecklist(summary, decisions)`: Genera checklist di internalizzazione
+
+**RedactionAgent** (`src/lib/ai/agents/redaction.ts`)
+- `redact(content, type)`: Redazione completa con dual-pass (regex + AI)
+- `detectSensitiveData(content)`: Quick check senza redazione
+
+**HiveContributionAgent** (`src/lib/ai/agents/hive-contribution.ts`)
+- `refine(type, input)`: Raffina contribuzione completa (titolo, descrizione, tag, contenuto)
+- `assessQuality(type, content)`: Quick quality check senza refinement completo
+- `suggestTags(content)`: Suggerisce tag dalla tassonomia
+- `improveMetadata(type, title, description, preview)`: Migliora solo titolo e descrizione
 
 #### Tool Registry
 
 Tools are defined in `src/lib/ai/tools/registry.ts` with handlers in `handlers.ts`:
-- `refine_request`, `classify_domain`, `detect_sensitive_data`
-- `search_consultants`, `calculate_match_score`, `generate_match_explanation`
-- `summarize_engagement`, `extract_decisions`, `generate_runbook`
-- `redact_pii`, `redact_secrets`, `anonymize_content`
-- `search_patterns`, `search_prompts`
+
+**Intake Tools:**
+- `refine_request`: Trasforma descrizioni grezze in scope
+- `classify_domain`: Classifica in categorie di dominio
+- `detect_sensitive_data`: Rileva PII/segreti
+
+**Matching Tools:**
+- `search_consultants`: Cerca consultant per criteri
+- `calculate_match_score`: Calcola score match
+- `generate_match_explanation`: Genera spiegazione human-readable
+
+**Transfer Tools:**
+- `summarize_engagement`: Genera executive summary
+- `extract_decisions`: Estrae decisioni dall'engagement
+- `generate_runbook`: Genera istruzioni step-by-step
+
+**Redaction Tools:**
+- `redact_pii`: Redazione PII (nomi, email, telefoni, SSN)
+- `redact_secrets`: Redazione segreti (API keys, password, token)
+- `anonymize_content`: Anonimizzazione completa per hive library
+
+**Hive Tools:**
+- `search_patterns`: Cerca nella pattern library
+- `search_prompts`: Cerca nella prompt library
 
 #### API Endpoints
 
 | Endpoint | Agent | Purpose |
 |----------|-------|---------|
 | `POST /api/ai/orchestrate` | All | Central orchestration endpoint |
-| `POST /api/ai/refine-request` | IntakeAgent | Request refinement |
-| `POST /api/offers` | MatcherAgent | Auto-calculates match scores |
-| `POST /api/hive/contribute` | RedactionAgent | Auto-redacts before saving |
+| `GET /api/ai/orchestrate` | - | API discovery (lista intent disponibili) |
+| `POST /api/ai/refine-request` | IntakeAgent | Request refinement diretto |
+| `POST /api/ai/refine-contribution` | HiveContributionAgent | Raffina contribuzione hive |
+| `POST /api/offers` | MatcherAgent | Auto-calcola match score su offerta |
+| `POST /api/hive/contribute` | RedactionAgent | Auto-redazione prima del salvataggio |
+| `POST /api/engagements/[id]/transfer-pack` | TransferAgent | Genera Transfer Pack |
 
 #### Configuration
 
 ```env
 GEMINI_API_KEY=AIza...
-GEMINI_MODEL=gemini-1.5-pro  # or gemini-1.5-flash
-AI_PROVIDER=gemini  # default
+GEMINI_MODEL=gemini-2.0-flash  # default, configurabile (es. gemini-2.5-pro, gemini-1.5-pro)
+GOOGLE_AI_API_KEY=AIza...      # alternativo a GEMINI_API_KEY
 ```
+
+#### Intent System
+
+L'Orchestrator supporta 6 intent principali:
+- `refine_request`: Raffina richieste grezze (→ IntakeAgent)
+- `match_consultants`: Trova match consultant (→ MatcherAgent)
+- `generate_transfer_pack`: Genera Transfer Pack (→ TransferAgent)
+- `redact_content`: Redazione contenuto sensibile (→ RedactionAgent)
+- `search_hive`: Cerca nella hive library (→ HiveAgent)
+- `refine_contribution`: Raffina contribuzioni hive (→ HiveContributionAgent)
 
 #### Safety (MANDATORY)
 
@@ -184,6 +245,13 @@ AI_PROVIDER=gemini  # default
 - Regex + AI dual-pass for PII detection
 - `requiresManualReview` flag for uncertain redactions
 - Raw engagement content stored only for participants
+- Temperature bassa (0.3) per redazione conservativa
+- Confidence levels: high/medium/low per audit
+
+#### Documentazione Dettagliata
+
+Per una documentazione completa dell'architettura AI, vedere:
+- `docs/ORCHESTRATORE.md`: Guida completa all'orchestratore e agli agenti
 
 ------
 

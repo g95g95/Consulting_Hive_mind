@@ -9,12 +9,14 @@ A modern, AI-native, members-only platform that connects clients with independen
 ### 1. Crea gli account gratuiti necessari:
 - **Clerk** (autenticazione): https://clerk.com → crea progetto → copia le API keys
 - **Supabase** (database): https://supabase.com → crea progetto → copia connection string
+- **Google AI Studio** (AI): https://aistudio.google.com → Get API Key
 
 ### 2. Esegui questi comandi:
 ```bash
 npm install
 npm run setup        # Ti guida nella configurazione
 npm run db:setup     # Crea le tabelle nel database
+npm run db:seed      # Popola con dati di test (opzionale)
 npm run dev          # Avvia l'app
 ```
 
@@ -47,11 +49,19 @@ npm run dev          # Avvia l'app
 7. **Reviews**: Bidirectional ratings (client <-> consultant)
 8. **Hive Mind**: Anonymized patterns, prompts, and stack templates
 
-### AI Capabilities
-- Request refinement and structuring
-- Consultant matching with explanations
-- Transfer pack generation
-- PII/secrets redaction for Hive Mind contributions
+### AI Architecture (Gemini-Powered)
+
+The platform uses a **multi-agent orchestrated architecture**:
+
+| Agent | Purpose |
+|-------|---------|
+| **IntakeAgent** | Transform messy requests into structured scopes |
+| **MatcherAgent** | Score consultant-request matches with explanations |
+| **TransferAgent** | Generate knowledge transfer packs |
+| **RedactionAgent** | Detect and redact PII/secrets |
+| **HiveContributionAgent** | Refine and improve hive library contributions |
+
+See [docs/ORCHESTRATORE.md](docs/ORCHESTRATORE.md) for detailed AI documentation.
 
 ## Tech Stack
 
@@ -60,81 +70,233 @@ npm run dev          # Avvia l'app
 - **Database**: PostgreSQL + Prisma ORM
 - **Auth**: Clerk
 - **Payments**: Stripe
-- **AI**: Anthropic Claude + OpenAI (configurable)
-- **Deployment**: PWA-ready
+- **AI**: Google Gemini (primary), Anthropic/OpenAI (supported)
+- **Deployment**: PWA-ready, Vercel-optimized
 
-## Getting Started
+---
+
+## Installation
 
 ### Prerequisites
 - Node.js 18+
-- PostgreSQL database
+- PostgreSQL database (or Supabase)
 - Clerk account
-- Stripe account
-- Anthropic/OpenAI API keys
+- Stripe account (for payments)
+- Google AI API key (for Gemini)
 
-### Installation
+### Step-by-Step Setup
 
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
 git clone <repository-url>
 cd Consulting_Hive_mind
 ```
 
-2. Install dependencies:
+2. **Install dependencies:**
 ```bash
 npm install
 ```
 
-3. Copy environment variables:
+3. **Configure environment variables:**
 ```bash
 cp .env.example .env.local
 ```
 
-4. Configure your `.env.local` with:
-- Clerk credentials
-- Database URL
-- Stripe keys
-- AI provider keys
+4. **Edit `.env.local` with your credentials:**
+```env
+# Database (Supabase)
+DATABASE_URL="postgresql://..."
+DIRECT_URL="postgresql://..."
 
-5. Run database migrations:
-```bash
-npx prisma migrate dev
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+
+# Stripe Payments
+STRIPE_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+
+# AI Provider (Gemini - recommended)
+GEMINI_API_KEY=AIza...
+GEMINI_MODEL=gemini-2.0-flash
 ```
 
-6. Seed the database (optional):
+5. **Setup database:**
 ```bash
-npx prisma db seed
+npm run db:setup     # Generate Prisma client + push schema
+npm run db:seed      # Seed with test data (includes 10 hive examples)
 ```
 
-7. Start the development server:
+6. **Start the development server:**
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see the result.
+7. **Open http://localhost:3000**
+
+---
+
+## Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run with coverage
+npm run test:coverage
+```
+
+### Testing the AI Features
+
+#### 1. Test Request Refinement
+```bash
+curl -X POST http://localhost:3000/api/ai/refine-request \
+  -H "Content-Type: application/json" \
+  -d '{"rawDescription": "I need help with my ML pipeline, its slow and expensive"}'
+```
+
+#### 2. Test Contribution Refinement
+```bash
+curl -X POST http://localhost:3000/api/ai/refine-contribution \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "pattern",
+    "title": "My Pattern",
+    "content": "Some content about a pattern I discovered..."
+  }'
+```
+
+#### 3. Test the Orchestrator
+```bash
+# List available intents
+curl http://localhost:3000/api/ai/orchestrate
+
+# Process an intent
+curl -X POST http://localhost:3000/api/ai/orchestrate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "intent": "refine_request",
+    "context": {"rawDescription": "Help me with Kubernetes"}
+  }'
+```
+
+### Manual Testing Flow
+
+1. **Sign up** at `/sign-up` with Google/email
+2. **Complete onboarding** at `/onboarding` - select "Both" role
+3. **Create a request** at `/app/requests/new`
+4. **Browse the hive** at `/app/hive` (10 seeded examples)
+5. **Contribute to hive** - the AI will refine your contribution
+6. **Check transfer pack generation** after completing an engagement
+
+### Test User (Development Only)
+
+After running `npm run db:seed`, you can test with:
+- Username: `user`
+- Password: `user`
+
+> Note: This only works if you've configured Clerk to allow username/password auth.
+
+---
 
 ## Environment Variables
 
-See `.env.example` for all required variables:
+### Required
 
 ```env
-# Clerk
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-
 # Database
-DATABASE_URL=
+DATABASE_URL=postgresql://...
+DIRECT_URL=postgresql://...          # For Prisma migrations
 
-# Stripe
-STRIPE_SECRET_KEY=
-STRIPE_WEBHOOK_SECRET=
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/app
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
 
-# AI Providers
-AI_PROVIDER=anthropic
-ANTHROPIC_API_KEY=
-OPENAI_API_KEY=
+# AI Provider
+GEMINI_API_KEY=AIza...
+GEMINI_MODEL=gemini-2.0-flash        # or gemini-2.5-pro, gemini-1.5-pro
 ```
+
+### Optional
+
+```env
+# Stripe (for payments)
+STRIPE_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Alternative AI Providers
+AI_PROVIDER=gemini                   # gemini (default), anthropic, openai
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+
+# Monitoring
+SENTRY_DSN=https://...
+NEXT_PUBLIC_POSTHOG_KEY=phc_...
+
+# Debug
+IS_DEBUG=true
+FILE_LOG_PATH=C:/logs/hivemind
+```
+
+### Available Gemini Models
+
+| Model | Description |
+|-------|-------------|
+| `gemini-2.0-flash` | Default, fast and balanced |
+| `gemini-2.5-pro` | Best quality, slower |
+| `gemini-1.5-pro` | Stable, good quality |
+| `gemini-1.5-flash` | Fastest, lower cost |
+
+---
+
+## Deployment
+
+### Deploy to Vercel
+
+1. **Push to GitHub**
+
+2. **Import in Vercel:**
+   - Go to https://vercel.com/new
+   - Import your repository
+   - Vercel auto-detects Next.js
+
+3. **Configure environment variables:**
+   - Add all variables from `.env.local` to Vercel dashboard
+   - Use production Clerk/Stripe keys
+
+4. **Deploy!**
+
+### Production Checklist
+
+- [ ] Switch Clerk to production keys
+- [ ] Switch Stripe to live keys
+- [ ] Set `GEMINI_MODEL` to preferred model
+- [ ] Configure Stripe webhook endpoint
+- [ ] Set up Sentry for error tracking
+- [ ] Configure PostHog for analytics
+- [ ] Update `NEXT_PUBLIC_APP_URL`
+
+### Database Migration (Production)
+
+```bash
+# Generate migration
+npx prisma migrate dev --name your_migration_name
+
+# Apply to production
+npx prisma migrate deploy
+```
+
+---
 
 ## Project Structure
 
@@ -152,6 +314,12 @@ src/
 │   │   │   └── requests/     # Request management
 │   │   └── onboarding/       # Onboarding flow
 │   ├── api/                  # API routes
+│   │   ├── ai/               # AI endpoints
+│   │   │   ├── orchestrate/  # Central AI orchestration
+│   │   │   ├── refine-request/
+│   │   │   └── refine-contribution/
+│   │   ├── hive/             # Hive library API
+│   │   └── ...
 │   ├── sign-in/              # Auth pages
 │   └── sign-up/
 ├── components/
@@ -159,23 +327,43 @@ src/
 │   ├── reviews/              # Review components
 │   └── ui/                   # shadcn/ui components
 ├── lib/
-│   ├── ai/                   # AI provider adapter
+│   ├── ai/                   # AI system
+│   │   ├── orchestrator.ts   # Central orchestrator
+│   │   ├── agents/           # Specialized agents
+│   │   ├── providers/        # Gemini, Anthropic, OpenAI
+│   │   └── tools/            # Tool registry & handlers
 │   ├── auth.ts               # Auth utilities
 │   └── db.ts                 # Prisma client
 └── middleware.ts             # Route protection
 ```
 
+---
+
 ## Documentation
 
-- [Auth Providers Setup](docs/AUTH_PROVIDERS.md)
-- [Technical Decisions](DECISIONS.md)
-- [Manifesto](docs/MANIFESTO.md)
+- [AI Orchestrator Guide](docs/ORCHESTRATORE.md) - Detailed AI architecture
+- [Auth Providers Setup](docs/AUTH_PROVIDERS.md) - Configure OAuth providers
+- [Technical Decisions](DECISIONS.md) - Architecture decisions
+- [Manifesto](docs/MANIFESTO.md) - Platform philosophy
+- [Setup Guide (Italian)](docs/SETUP_GUIDA_COMPLETA.md) - Step-by-step setup
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new).
+## Scripts Reference
 
-Check out the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm test` | Run tests |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run db:setup` | Generate Prisma + push schema |
+| `npm run db:seed` | Seed database with test data |
+| `npm run db:studio` | Open Prisma Studio |
+| `npm run setup` | Interactive setup wizard |
+
+---
 
 ## License
 

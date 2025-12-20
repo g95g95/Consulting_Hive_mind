@@ -19,7 +19,7 @@ import { TOOL_HANDLERS } from "./tools/handlers";
 // TYPES
 // ============================================
 
-export type AgentType = "intake" | "matcher" | "transfer" | "redaction" | "hive";
+export type AgentType = "intake" | "matcher" | "transfer" | "redaction" | "hive" | "hive_contribution";
 
 export type OrchestratorIntent =
   | "refine_request"
@@ -27,6 +27,7 @@ export type OrchestratorIntent =
   | "generate_transfer_pack"
   | "redact_content"
   | "search_hive"
+  | "refine_contribution"
   | "unknown";
 
 export interface OrchestratorRequest {
@@ -162,6 +163,36 @@ Output structured JSON with:
 - suggestions: Related searches the user might find useful`,
     tools: getToolsForAgent("hive"),
   },
+
+  hive_contribution: {
+    type: "hive_contribution",
+    systemPrompt: `You are a knowledge curator helping users refine their contributions to the Consulting Hive Mind library.
+
+Your job is to improve the quality of patterns, prompts, and stack templates before they are submitted.
+
+For each contribution:
+1. Improve the title to be clear, descriptive, and searchable (max 60 chars)
+2. Write a compelling 2-3 sentence description
+3. Suggest appropriate tags from the platform taxonomy
+4. Structure the content following best practices for the type
+5. Assess quality and provide improvement suggestions
+
+Content Type Guidelines:
+- Patterns: Problem → Solution → Implementation → Results
+- Prompts: Purpose → Structure with [PLACEHOLDERS] → Expected Output
+- Stacks: Overview → Components by layer → Setup → Costs → Scaling
+
+Tag Taxonomy:
+AI/ML, Data, Infrastructure, Security, Engineering, Product, Enterprise
+
+Output structured JSON with:
+- refinedTitle, refinedDescription, suggestedTags, suggestedCategory
+- refinedContent (improved structure and clarity)
+- stackMetadata (for stacks: uiTech, backendTech, databaseTech, releaseTech)
+- qualityScore (0-100), improvements, suggestions
+- isReadyForSubmission, confidence`,
+    tools: [], // This agent uses prompt-based refinement, no tools needed
+  },
 };
 
 // ============================================
@@ -174,6 +205,7 @@ const INTENT_MAP: Record<OrchestratorIntent, AgentType> = {
   generate_transfer_pack: "transfer",
   redact_content: "redaction",
   search_hive: "hive",
+  refine_contribution: "hive_contribution",
   unknown: "intake", // Default to intake
 };
 
@@ -193,8 +225,11 @@ export function detectIntent(context: Record<string, unknown>): OrchestratorInte
   if (context.engagementId && context.generateTransferPack) {
     return "generate_transfer_pack";
   }
-  if (context.contentToRedact || context.contribution) {
+  if (context.contentToRedact) {
     return "redact_content";
+  }
+  if (context.contributionType && context.contributionContent) {
+    return "refine_contribution";
   }
   if (context.searchQuery && context.searchHive) {
     return "search_hive";
@@ -210,8 +245,8 @@ export function detectIntent(context: Record<string, unknown>): OrchestratorInte
 export class Orchestrator {
   private model: string;
 
-  constructor(model: string = "gemini-1.5-pro") {
-    this.model = model;
+  constructor(model?: string) {
+    this.model = model || process.env.GEMINI_MODEL || "gemini-2.0-flash";
   }
 
   /**
@@ -319,6 +354,31 @@ Ensure all PII, secrets, and sensitive data are properly redacted.`;
 
 ${context.filters ? `Filters: ${JSON.stringify(context.filters)}` : ""}`;
 
+      case "refine_contribution":
+        return `Please refine this ${context.contributionType} contribution for the hive library:
+
+## Title
+${context.title || "Untitled"}
+
+## Description
+${context.description || "No description provided"}
+
+## Current Tags
+${Array.isArray(context.tags) ? context.tags.join(", ") : "No tags"}
+${context.contributionType === "stack" ? `
+## Stack Metadata
+- UI/Frontend: ${context.uiTech || "Not specified"}
+- Backend: ${context.backendTech || "Not specified"}
+- Database: ${context.databaseTech || "Not specified"}
+- Release/Deploy: ${context.releaseTech || "Not specified"}
+` : ""}
+## Content
+${context.contributionContent}
+
+---
+
+Analyze this contribution and provide a refined version with improvements.`;
+
       default:
         return JSON.stringify(context);
     }
@@ -360,6 +420,18 @@ ${context.filters ? `Filters: ${JSON.stringify(context.filters)}` : ""}`;
         results: [],
         suggestions: [],
       },
+      refine_contribution: {
+        refinedTitle: "",
+        refinedDescription: "",
+        suggestedTags: [],
+        suggestedCategory: "",
+        refinedContent: "",
+        qualityScore: 0,
+        improvements: [],
+        suggestions: [],
+        isReadyForSubmission: false,
+        confidence: "low",
+      },
       unknown: {},
     };
 
@@ -376,6 +448,7 @@ ${context.filters ? `Filters: ${JSON.stringify(context.filters)}` : ""}`;
       generate_transfer_pack: 0.6, // Slightly creative
       redact_content: 0.3, // Very conservative
       search_hive: 0.4, // Balanced
+      refine_contribution: 0.6, // Creative but structured
       unknown: 0.7,
     };
     return temperatures[intent];
@@ -391,6 +464,7 @@ ${context.filters ? `Filters: ${JSON.stringify(context.filters)}` : ""}`;
       generate_transfer_pack: 3000,
       redact_content: 2000,
       search_hive: 1500,
+      refine_contribution: 4000, // Needs room for full content refinement
       unknown: 1500,
     };
     return tokens[intent];
@@ -406,7 +480,7 @@ let orchestratorInstance: Orchestrator | null = null;
 
 export function getOrchestrator(): Orchestrator {
   if (!orchestratorInstance) {
-    const model = process.env.GEMINI_MODEL || "gemini-1.5-pro";
+    const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
     orchestratorInstance = new Orchestrator(model);
   }
   return orchestratorInstance;
@@ -459,5 +533,34 @@ export async function searchHive(
   return getOrchestrator().process({
     intent: "search_hive",
     context: { searchQuery: query, searchHive: true, filters },
+  });
+}
+
+export async function refineContribution(
+  contributionType: "pattern" | "prompt" | "stack",
+  input: {
+    title: string;
+    description?: string;
+    content: string;
+    tags?: string[];
+    uiTech?: string;
+    backendTech?: string;
+    databaseTech?: string;
+    releaseTech?: string;
+  }
+): Promise<OrchestratorResponse> {
+  return getOrchestrator().process({
+    intent: "refine_contribution",
+    context: {
+      contributionType,
+      title: input.title,
+      description: input.description,
+      contributionContent: input.content,
+      tags: input.tags,
+      uiTech: input.uiTech,
+      backendTech: input.backendTech,
+      databaseTech: input.databaseTech,
+      releaseTech: input.releaseTech,
+    },
   });
 }

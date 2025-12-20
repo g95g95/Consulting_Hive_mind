@@ -15,3 +15,6 @@ export type { TransferPackResult } from "./transfer";
 
 export { RedactionAgent, getRedactionAgent } from "./redaction";
 export type { RedactionResult } from "./redaction";
+
+export { HiveContributionAgent, getHiveContributionAgent } from "./hive-contribution";
+export type { HiveContributionResult, ContributionType } from "./hive-contribution";

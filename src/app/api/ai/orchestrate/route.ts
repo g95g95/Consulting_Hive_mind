@@ -14,7 +14,7 @@ import {
  *
  * Request body:
  * {
- *   intent?: "refine_request" | "match_consultants" | "generate_transfer_pack" | "redact_content" | "search_hive",
+ *   intent?: "refine_request" | "match_consultants" | "generate_transfer_pack" | "redact_content" | "search_hive" | "refine_contribution",
  *   context: { ... } // Intent-specific data
  * }
  */
@@ -119,7 +119,13 @@ export async function GET() {
         requiredContext: ["searchQuery"],
         optionalContext: ["filters"],
       },
+      {
+        intent: "refine_contribution",
+        description: "Refine and improve hive library contributions (patterns, prompts, stacks)",
+        requiredContext: ["contributionType", "title", "contributionContent"],
+        optionalContext: ["description", "tags", "uiTech", "backendTech", "databaseTech", "releaseTech"],
+      },
     ],
-    defaultModel: process.env.GEMINI_MODEL || "gemini-1.5-pro",
+    defaultModel: process.env.GEMINI_MODEL || "gemini-2.0-flash",
   });
 }

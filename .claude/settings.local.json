@@ -23,7 +23,9 @@
       "Skill(frontend-design:frontend-design)",
       "Read",
       "Write",
-      "Edit"
+      "Edit",
+      "Bash(npx prisma db seed:*)",
+      "Bash(npm run db:seed:*)"
     ],
     "deny": [],
     "ask": []

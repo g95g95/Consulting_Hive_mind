@@ -45,7 +45,7 @@ export function getCurrentProvider(): AIProvider {
 export function getModelForProvider(provider: AIProvider): string {
   switch (provider) {
     case "gemini":
-      return process.env.GEMINI_MODEL || "gemini-1.5-pro";
+      return process.env.GEMINI_MODEL || "gemini-2.0-flash";
     case "anthropic":
       return process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20241022";
     case "openai":
