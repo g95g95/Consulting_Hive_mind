@@ -1,8 +1,18 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const FROM_EMAIL = process.env.FROM_EMAIL || "noreply@consulting-hive.com";
+
+// Lazy initialization to avoid build-time errors
+let resend: Resend | null = null;
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) {
+    return null;
+  }
+  if (!resend) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resend;
+}
 
 interface SendEmailParams {
   to: string;
@@ -11,7 +21,8 @@ interface SendEmailParams {
 }
 
 export async function sendEmail({ to, subject, html }: SendEmailParams) {
-  if (!process.env.RESEND_API_KEY) {
+  const client = getResend();
+  if (!client) {
     console.log("[Email] Skipping email (no RESEND_API_KEY configured)");
     console.log("[Email] Would send to:", to);
     console.log("[Email] Subject:", subject);
@@ -19,7 +30,7 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
   }
 
   try {
-    const result = await resend.emails.send({
+    const result = await client.emails.send({
       from: FROM_EMAIL,
       to,
       subject,

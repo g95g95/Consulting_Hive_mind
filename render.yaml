@@ -1,0 +1,74 @@
+services:
+  - type: web
+    name: consulting-hivemind
+    runtime: node
+    region: frankfurt # EU region vicina a Supabase EU
+    plan: free # Cambia a 'starter' o 'standard' per produzione
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      # Database (Supabase - già configurato)
+      - key: DATABASE_URL
+        value: postgresql://postgres.hgomjtmunwajbgdkrevp:Caprica4987654%23@aws-1-eu-west-1.pooler.supabase.com:5432/postgres
+
+      # Supabase Storage
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        value: https://hgomjtmunwajbgdkrevp.supabase.co
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhnb21qdG11bndhamJnZGtyZXZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU1NTc1OTMsImV4cCI6MjA4MTEzMzU5M30.lrc54CAl9TdjcebLGi83-3g58ZAfA6U9YeLaPhz3VXE
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhnb21qdG11bndhamJnZGtyZXZwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTU1NzU5MywiZXhwIjoyMDgxMTMzNTkzfQ.yyjEp4OKYfGfBL8onsacP4JU03ksmK-4qOct28x8coI
+
+      # Clerk Authentication
+      - key: NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+        value: pk_test_YmV0dGVyLWtpdHRlbi04My5jbGVyay5hY2NvdW50cy5kZXYk
+      - key: CLERK_SECRET_KEY
+        sync: false # Marca come secret - dovrai inserirlo manualmente su Render
+      - key: CLERK_WEBHOOK_SECRET
+        sync: false
+      - key: NEXT_PUBLIC_CLERK_SIGN_IN_URL
+        value: /sign-in
+      - key: NEXT_PUBLIC_CLERK_SIGN_UP_URL
+        value: /sign-up
+      - key: NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
+        value: /app
+      - key: NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
+        value: /onboarding
+
+      # Stripe Payments
+      - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+      # AI Providers
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: AI_PROVIDER
+        value: anthropic
+
+      # Sentry
+      - key: SENTRY_DSN
+        sync: false
+      - key: NEXT_PUBLIC_SENTRY_DSN
+        sync: false
+
+      # Analytics (PostHog)
+      - key: NEXT_PUBLIC_POSTHOG_KEY
+        sync: false
+      - key: NEXT_PUBLIC_POSTHOG_HOST
+        value: https://app.posthog.com
+
+      # App Config
+      - key: NEXT_PUBLIC_APP_URL
+        fromService:
+          type: web
+          name: consulting-hivemind
+          property: host
+      - key: NODE_ENV
+        value: production

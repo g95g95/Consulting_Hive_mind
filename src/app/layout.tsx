@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Consulting Hive Mind",
+  title: "arcHive",
   description: "Members-only platform connecting clients with expert consultants for paid, time-boxed consults.",
   manifest: "/manifest.json",
 };

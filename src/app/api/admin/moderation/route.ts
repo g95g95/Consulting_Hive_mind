@@ -73,8 +73,6 @@ export async function PUT(request: Request) {
           where: { id },
           data: {
             status: newStatus,
-            reviewedBy: user.id,
-            reviewedAt: new Date(),
           },
         });
         break;
@@ -83,8 +81,6 @@ export async function PUT(request: Request) {
           where: { id },
           data: {
             status: newStatus,
-            reviewedBy: user.id,
-            reviewedAt: new Date(),
           },
         });
         break;
@@ -93,8 +89,6 @@ export async function PUT(request: Request) {
           where: { id },
           data: {
             status: newStatus,
-            reviewedBy: user.id,
-            reviewedAt: new Date(),
           },
         });
         break;

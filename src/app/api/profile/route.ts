@@ -17,7 +17,7 @@ export async function GET() {
           include: {
             skills: {
               include: {
-                skill: true,
+                skillTag: true,
               },
             },
           },

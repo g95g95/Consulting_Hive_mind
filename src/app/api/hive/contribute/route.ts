@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-// TODO: Re-enable PII redaction when implemented
-// import { redactSensitiveContent } from "@/lib/ai/provider";
+import { getRedactionAgent } from "@/lib/ai/agents";
 
 export async function POST(request: Request) {
   try {
@@ -30,9 +29,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // TODO: Re-enable PII redaction when implemented
-    // For now, bypass redaction and use content as-is
-    const redactedContent = content;
+    // Use RedactionAgent to detect and redact sensitive content
+    const redactionAgent = getRedactionAgent();
+    const contentType = type === "stack" ? "stack_template" : type;
+    const redactionResult = await redactionAgent.redact(content, contentType as "pattern" | "prompt" | "stack_template");
+
+    // Create redaction job record
+    const redactionJob = await db.redactionJob.create({
+      data: {
+        originalText: content,
+        redactedText: redactionResult.redactedText,
+        detectedPII: redactionResult.detectedPII,
+        detectedSecrets: redactionResult.detectedSecrets,
+        status: redactionResult.requiresManualReview ? "PENDING" : "COMPLETED",
+      },
+    });
+
+    // Determine initial status based on redaction confidence
+    const initialStatus = redactionResult.requiresManualReview
+      ? "PENDING_REVIEW"
+      : "PENDING_REVIEW"; // Still requires admin review even if AI is confident
 
     // Create the contribution based on type
     let contribution;
@@ -44,10 +60,10 @@ export async function POST(request: Request) {
             creatorId: user.id,
             title,
             description: description || "",
-            content: redactedContent,
+            content: redactionResult.redactedText,
             tags: tags || [],
-            status: "PENDING_REVIEW",
-            // redactionJobId: redactionJob.id, // TODO: Re-enable
+            status: initialStatus,
+            redactionJobId: redactionJob.id,
           },
         });
         break;
@@ -58,11 +74,11 @@ export async function POST(request: Request) {
             creatorId: user.id,
             title,
             description,
-            content: redactedContent,
+            content: redactionResult.redactedText,
             useCase,
             tags: tags || [],
-            status: "PENDING_REVIEW",
-            // redactionJobId: redactionJob.id, // TODO: Re-enable
+            status: initialStatus,
+            redactionJobId: redactionJob.id,
           },
         });
         break;
@@ -73,14 +89,14 @@ export async function POST(request: Request) {
             creatorId: user.id,
             title,
             description: description || "",
-            content: redactedContent,
+            content: redactionResult.redactedText,
             tags: tags || [],
             uiTech: uiTech || null,
             backendTech: backendTech || null,
             databaseTech: databaseTech || null,
             releaseTech: releaseTech || null,
-            status: "PENDING_REVIEW",
-            // redactionJobId: redactionJob.id, // TODO: Re-enable
+            status: initialStatus,
+            redactionJobId: redactionJob.id,
           },
         });
         break;
@@ -89,18 +105,32 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     }
 
-    // Audit log
+    // Audit log with redaction details
     await db.auditLog.create({
       data: {
         userId: user.id,
         action: "HIVE_CONTRIBUTION",
         entity: type.charAt(0).toUpperCase() + type.slice(1),
         entityId: contribution.id,
-        metadata: {}, // TODO: Add PII detection results when re-enabled
+        metadata: {
+          redactionJobId: redactionJob.id,
+          detectedPII: redactionResult.detectedPII,
+          detectedSecrets: redactionResult.detectedSecrets,
+          requiresManualReview: redactionResult.requiresManualReview,
+          confidence: redactionResult.confidence,
+        },
       },
     });
 
-    return NextResponse.json(contribution);
+    return NextResponse.json({
+      ...contribution,
+      redactionInfo: {
+        detectedPII: redactionResult.detectedPII,
+        detectedSecrets: redactionResult.detectedSecrets,
+        requiresReview: redactionResult.requiresManualReview,
+        confidence: redactionResult.confidence,
+      },
+    });
   } catch (error) {
     console.error("Contribute error:", error);
     return NextResponse.json({ error: "Failed to submit contribution" }, { status: 500 });

@@ -112,18 +112,78 @@ Support all AI/IT sectors from day one by implementing a flexible taxonomy + AI 
 
 ### 6) AI requirements
 
-Implement an AI provider adapter (Anthropic + OpenAI, config driven) used for:
+**IMPLEMENTED: Agentic Architecture with Gemini**
 
-- intake refinement
-- matching suggestions + explanations
-- transfer pack drafting
-- redaction/anonymization (mandatory gate)
+The platform uses a multi-agent orchestrated architecture powered by Google Gemini API.
 
-Safety:
+#### Architecture Overview
 
-- detect secrets/PII
-- redaction pass required before saving to hive libraries
-- store raw engagement content only for participants, never for the hive
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      ORCHESTRATOR                           │
+│                   (src/lib/ai/orchestrator.ts)              │
+│                                                             │
+│  Intent Detection → Agent Selection → Tool Execution        │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+        ▼                   ▼                   ▼
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│ IntakeAgent │     │MatcherAgent│     │TransferAgent│
+│ (refinement)│     │  (scoring)  │     │ (knowledge) │
+└─────────────┘     └─────────────┘     └─────────────┘
+        │                   │                   │
+        └───────────────────┼───────────────────┘
+                            │
+                            ▼
+                ┌─────────────────────┐
+                │   RedactionAgent    │
+                │    (PII/secrets)    │
+                └─────────────────────┘
+```
+
+#### Specialized Agents
+
+| Agent | Location | Purpose |
+|-------|----------|---------|
+| IntakeAgent | `src/lib/ai/agents/intake.ts` | Transform messy requests into structured scopes |
+| MatcherAgent | `src/lib/ai/agents/matcher.ts` | Score consultant-request matches with explanations |
+| TransferAgent | `src/lib/ai/agents/transfer.ts` | Generate knowledge transfer packs |
+| RedactionAgent | `src/lib/ai/agents/redaction.ts` | Detect and redact PII/secrets |
+
+#### Tool Registry
+
+Tools are defined in `src/lib/ai/tools/registry.ts` with handlers in `handlers.ts`:
+- `refine_request`, `classify_domain`, `detect_sensitive_data`
+- `search_consultants`, `calculate_match_score`, `generate_match_explanation`
+- `summarize_engagement`, `extract_decisions`, `generate_runbook`
+- `redact_pii`, `redact_secrets`, `anonymize_content`
+- `search_patterns`, `search_prompts`
+
+#### API Endpoints
+
+| Endpoint | Agent | Purpose |
+|----------|-------|---------|
+| `POST /api/ai/orchestrate` | All | Central orchestration endpoint |
+| `POST /api/ai/refine-request` | IntakeAgent | Request refinement |
+| `POST /api/offers` | MatcherAgent | Auto-calculates match scores |
+| `POST /api/hive/contribute` | RedactionAgent | Auto-redacts before saving |
+
+#### Configuration
+
+```env
+GEMINI_API_KEY=AIza...
+GEMINI_MODEL=gemini-1.5-pro  # or gemini-1.5-flash
+AI_PROVIDER=gemini  # default
+```
+
+#### Safety (MANDATORY)
+
+- All hive contributions go through RedactionAgent
+- Regex + AI dual-pass for PII detection
+- `requiresManualReview` flag for uncertain redactions
+- Raw engagement content stored only for participants
 
 ------
 

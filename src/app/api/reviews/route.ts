@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     const existingReview = await db.review.findFirst({
       where: {
         engagementId,
-        reviewerId: user.id,
+        authorId: user.id,
         type,
       },
     });
@@ -63,33 +63,13 @@ export async function POST(request: Request) {
     const review = await db.review.create({
       data: {
         engagementId,
-        reviewerId: user.id,
-        revieweeId,
+        authorId: user.id,
+        targetId: revieweeId,
         type,
         rating,
         comment,
       },
     });
-
-    // Update consultant's average rating if applicable
-    if (type === "CLIENT_TO_CONSULTANT") {
-      const allReviews = await db.review.findMany({
-        where: {
-          revieweeId,
-          type: "CLIENT_TO_CONSULTANT",
-        },
-      });
-
-      const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
-
-      await db.consultantProfile.update({
-        where: { userId: revieweeId },
-        data: {
-          avgRating,
-          totalReviews: allReviews.length,
-        },
-      });
-    }
 
     // Audit log
     await db.auditLog.create({
@@ -126,8 +106,8 @@ export async function GET(request: Request) {
       const reviews = await db.review.findMany({
         where: { engagementId },
         include: {
-          reviewer: true,
-          reviewee: true,
+          author: true,
+          target: true,
         },
       });
       return NextResponse.json(reviews);
@@ -137,11 +117,11 @@ export async function GET(request: Request) {
       // Get reviews for a consultant (public)
       const reviews = await db.review.findMany({
         where: {
-          revieweeId: consultantId,
+          targetId: consultantId,
           type: "CLIENT_TO_CONSULTANT",
         },
         include: {
-          reviewer: {
+          author: {
             select: {
               firstName: true,
               lastName: true,

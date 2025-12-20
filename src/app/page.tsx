@@ -18,7 +18,7 @@ export default function LandingPage() {
         <nav className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Hexagon className="h-8 w-8 text-amber-500" />
-            <span className="text-xl font-bold text-white">Hive Mind</span>
+            <span className="text-xl font-bold text-white">arcHive</span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/sign-in">
@@ -249,7 +249,7 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <Hexagon className="h-6 w-6 text-amber-500" />
-              <span className="text-slate-400">Consulting Hive Mind</span>
+              <span className="text-slate-400">arcHive</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-slate-500">
               <span>Scaffolding, not a toll bridge.</span>

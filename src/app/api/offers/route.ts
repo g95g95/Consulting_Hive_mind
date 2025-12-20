@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getMatcherAgent } from "@/lib/ai/agents";
 
 export async function POST(request: Request) {
   try {
@@ -17,6 +18,9 @@ export async function POST(request: Request) {
 
     const consultantProfile = await db.consultantProfile.findUnique({
       where: { userId: user.id },
+      include: {
+        skills: { include: { skillTag: true } },
+      },
     });
 
     if (!consultantProfile) {
@@ -28,6 +32,9 @@ export async function POST(request: Request) {
     // Check request exists and is open
     const req = await db.request.findUnique({
       where: { id: requestId },
+      include: {
+        skills: { include: { skillTag: true } },
+      },
     });
 
     if (!req) {
@@ -52,7 +59,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "You have already made an offer" }, { status: 400 });
     }
 
-    // Create offer
+    // Calculate AI match score using MatcherAgent
+    let matchScore: number | null = null;
+    let matchReason: string | null = null;
+
+    try {
+      const matcherAgent = getMatcherAgent();
+      const matchResult = await matcherAgent.calculateScore(
+        {
+          title: req.title,
+          summary: req.refinedSummary || req.title,
+          skills: req.skills.map((s: { skillTag: { name: string } }) => s.skillTag.name),
+          desiredOutcome: req.desiredOutcome || "",
+        },
+        {
+          id: consultantProfile.id,
+          name: user.firstName || "Consultant",
+          headline: consultantProfile.headline || "",
+          bio: consultantProfile.bio || "",
+          skills: consultantProfile.skills.map((s: { skillTag: { name: string } }) => s.skillTag.name),
+          rating: 0, // Rating computed separately
+        }
+      );
+      matchScore = matchResult.score;
+      matchReason = matchResult.reason;
+    } catch (error) {
+      // Log but don't fail - matching is enhancement, not critical
+      console.error("AI match calculation failed:", error);
+    }
+
+    // Create offer with AI-calculated match score
     const offer = await db.offer.create({
       data: {
         requestId,
@@ -60,6 +96,8 @@ export async function POST(request: Request) {
         message,
         proposedRate: proposedRate ? parseInt(proposedRate) * 100 : consultantProfile.hourlyRate,
         status: "PENDING",
+        matchScore,
+        matchReason,
       },
     });
 
@@ -78,7 +116,7 @@ export async function POST(request: Request) {
         action: "OFFER_CREATED",
         entity: "Offer",
         entityId: offer.id,
-        metadata: { requestId },
+        metadata: { requestId, matchScore },
       },
     });
 

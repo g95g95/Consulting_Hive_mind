@@ -33,7 +33,7 @@ export function AppHeader({ user }: { user: User }) {
         {/* Logo */}
         <Link href="/app" className="flex items-center gap-2 ml-2 lg:ml-0">
           <Hexagon className="h-6 w-6 text-primary" />
-          <span className="font-semibold text-foreground hidden sm:inline">Hive Mind</span>
+          <span className="font-semibold text-foreground hidden sm:inline">arcHive</span>
         </Link>
 
         {/* Spacer */}

@@ -1,6 +1,6 @@
 {
-  "name": "Consulting Hive Mind",
-  "short_name": "HiveMind",
+  "name": "arcHive",
+  "short_name": "arcHive",
   "description": "Members-only platform connecting clients with expert consultants for paid, time-boxed consults",
   "start_url": "/app",
   "display": "standalone",

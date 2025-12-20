@@ -65,3 +65,54 @@ include: { skills: { include: { skillTag: true } } }
 - Use session pooler (port 5432 via pooler) for Prisma migrations
 - Check the exact region (`aws-0` vs `aws-1` etc.) from Supabase dashboard
 - URL-encode special characters in passwords (e.g., `#` becomes `%23`)
+
+---
+
+## 5. Prisma Field Name Mismatches (Extended)
+
+**Issue**: Multiple field naming inconsistencies between code and schema.
+
+**Examples found**:
+- `skill` should be `skillTag` (in ConsultantSkill)
+- `reviewerId`/`revieweeId` should be `authorId`/`targetId` (in Review model)
+- `reviewer`/`reviewee` relations should be `author`/`target`
+- `avgRating`/`totalReviews` don't exist on ConsultantProfile (rating is computed from Reviews)
+- `domain` should be `category` (in Pattern model)
+- `reviewedBy`/`reviewedAt` don't exist on Pattern/Prompt/StackTemplate
+
+**Solution**: Always verify field names in `prisma/schema.prisma` before writing queries or updates.
+
+---
+
+## 6. Third-Party SDK Initialization at Module Load Time
+
+**Issue**: SDKs that require API keys will throw errors at build/import time if initialized globally.
+
+**Examples**:
+- `new Resend(process.env.RESEND_API_KEY)` throws if key is missing
+- `new Stripe(key)` validates API version at load time
+
+**Solution**: Use lazy initialization patterns:
+```typescript
+// Bad - crashes at import if env var missing
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Good - only initializes when actually needed
+let resend: Resend | null = null;
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
+  if (!resend) resend = new Resend(process.env.RESEND_API_KEY);
+  return resend;
+}
+```
+
+---
+
+## 7. Stripe API Version Mismatches
+
+**Issue**: Stripe package version may not match the `apiVersion` string in code.
+
+**Example**:
+- Code had `"2025-05-28.basil"` but installed Stripe SDK expected `"2025-11-17.clover"`
+
+**Solution**: Check the installed Stripe version and use the correct API version string that matches your package.
