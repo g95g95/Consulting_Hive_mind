@@ -4,23 +4,129 @@ A modern, AI-native, members-only platform that connects clients with independen
 
 ---
 
-## Quick Start (5 minuti)
+## Avvio Locale (Local Development)
 
-### 1. Crea gli account gratuiti necessari:
-- **Clerk** (autenticazione): https://clerk.com → crea progetto → copia le API keys
-- **Supabase** (database): https://supabase.com → crea progetto → copia connection string
-- **Google AI Studio** (AI): https://aistudio.google.com → Get API Key
+### Prerequisiti
 
-### 2. Esegui questi comandi:
+- **Node.js 18+** - [Download](https://nodejs.org/)
+- **PostgreSQL** - locale o [Supabase](https://supabase.com) (gratuito)
+
+### 1. Crea gli account gratuiti necessari
+
+| Servizio | URL | Cosa ti serve |
+|----------|-----|---------------|
+| **Clerk** (auth) | https://clerk.com | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` |
+| **Supabase** (db) | https://supabase.com | Connection string PostgreSQL |
+| **Google AI** | https://aistudio.google.com | `GEMINI_API_KEY` |
+| **Stripe** (pagamenti) | https://stripe.com | `STRIPE_SECRET_KEY` + `PUBLISHABLE_KEY` (opzionale per dev) |
+
+### 2. Clona e installa
+
 ```bash
+git clone <repository-url>
+cd Consulting_Hive_mind
 npm install
-npm run setup        # Ti guida nella configurazione
-npm run db:setup     # Crea le tabelle nel database
-npm run db:seed      # Popola con dati di test (opzionale)
-npm run dev          # Avvia l'app
 ```
 
-### 3. Apri http://localhost:3000
+### 3. Configura le variabili d'ambiente
+
+```bash
+cp .env.example .env.local
+```
+
+Modifica `.env.local` con le tue credenziali:
+
+```env
+# Database (obbligatorio)
+DATABASE_URL="postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres"
+
+# Clerk Auth (obbligatorio)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxxxx
+CLERK_SECRET_KEY=sk_test_xxxxx
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/app
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/onboarding
+
+# AI Provider (almeno uno obbligatorio)
+AI_PROVIDER=gemini                    # gemini | anthropic | openai
+GEMINI_API_KEY=AIzaSyxxxxx
+# ANTHROPIC_API_KEY=sk-ant-xxxxx      # alternativa
+# OPENAI_API_KEY=sk-xxxxx             # alternativa
+
+# Stripe (opzionale per dev)
+STRIPE_SECRET_KEY=sk_test_xxxxx
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxxxx
+
+# App URL
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### 4. Setup database
+
+```bash
+# Genera Prisma client e crea le tabelle
+npm run db:setup
+
+# (Opzionale) Popola con dati di test
+npm run db:seed
+```
+
+### 5. Avvia il server di sviluppo
+
+```bash
+npm run dev
+```
+
+### 6. Apri l'app
+
+Vai su **http://localhost:3000**
+
+---
+
+## Comandi Utili
+
+```bash
+npm run dev          # Avvia server di sviluppo (http://localhost:3000)
+npm run build        # Build per produzione
+npm run start        # Avvia server produzione (dopo build)
+npm run db:studio    # Apri Prisma Studio (GUI database)
+npm run db:seed      # Popola database con dati test
+npm test             # Esegui test
+npm run test:watch   # Test in watch mode
+```
+
+---
+
+## Troubleshooting Locale
+
+### "Cannot find module '@prisma/client'"
+```bash
+npx prisma generate
+```
+
+### "Database connection failed"
+- Verifica che `DATABASE_URL` in `.env.local` sia corretto
+- Per Supabase: usa la connection string "Session pooler" (porta 5432)
+
+### "CLERK_SECRET_KEY is required"
+- Assicurati di aver copiato `.env.example` in `.env.local`
+- Verifica che le chiavi Clerk siano corrette
+
+### "AI Provider not configured"
+- Imposta almeno una API key: `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, o `OPENAI_API_KEY`
+- Imposta `AI_PROVIDER` al provider corrispondente
+
+---
+
+## Quick Start Alternativo (Setup Wizard)
+
+```bash
+npm install
+npm run setup        # Ti guida nella configurazione interattiva
+npm run db:setup
+npm run dev
+```
 
 **Per istruzioni dettagliate passo-passo**: vedi [docs/SETUP_GUIDA_COMPLETA.md](docs/SETUP_GUIDA_COMPLETA.md)
 

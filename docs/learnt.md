@@ -116,3 +116,26 @@ function getResend(): Resend | null {
 - Code had `"2025-05-28.basil"` but installed Stripe SDK expected `"2025-11-17.clover"`
 
 **Solution**: Check the installed Stripe version and use the correct API version string that matches your package.
+
+---
+
+## 8. Test Assertions Should Be Flexible for Refactored Code
+
+**Issue**: Tests that look for exact string literals (e.g., `status: "PENDING_REVIEW"`) fail when code is refactored to use variables.
+
+**Example**:
+```typescript
+// Test expected this literal:
+expect(code).toContain('status: "PENDING_REVIEW"')
+
+// But code was refactored to:
+const initialStatus = "PENDING_REVIEW";
+// ...
+status: initialStatus
+```
+
+**Solution**: When testing for behavior, check for both:
+1. The value exists somewhere (e.g., `'"PENDING_REVIEW"'`)
+2. The usage pattern exists (e.g., `'status: initialStatus'`)
+
+This allows code to be refactored while maintaining test coverage.

@@ -94,9 +94,15 @@ export default function NewRequestPage() {
           selectedSkills: result.suggestedSkills,
           sensitiveData: result.sensitiveDataWarning,
         });
+      } else if (response.status === 429) {
+        alert("AI service is busy. Please wait a few seconds and try again.");
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        alert(errorData.error || "Failed to refine request. Please try again.");
       }
     } catch (error) {
       console.error("Refine error:", error);
+      alert("Network error. Please check your connection and try again.");
     } finally {
       setRefining(false);
     }

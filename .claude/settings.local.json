@@ -25,7 +25,9 @@
       "Write",
       "Edit",
       "Bash(npx prisma db seed:*)",
-      "Bash(npm run db:seed:*)"
+      "Bash(npm run db:seed:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

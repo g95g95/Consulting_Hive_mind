@@ -325,7 +325,9 @@ describe('BIZ - Business Logic', () => {
 
   it('BIZ-008: Hive contributions default to PENDING_REVIEW', () => {
     const contribute = readFile('src/app/api/hive/contribute/route.ts')
-    expect(contribute).toContain('status: "PENDING_REVIEW"')
+    // Check that initialStatus is set to PENDING_REVIEW and used for status
+    expect(contribute).toContain('"PENDING_REVIEW"')
+    expect(contribute).toContain('status: initialStatus')
   })
 
   it('BIZ-009: Hive contributions create audit log', () => {

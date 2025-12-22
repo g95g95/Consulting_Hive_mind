@@ -29,6 +29,20 @@ export async function POST(request: Request) {
     return NextResponse.json(result);
   } catch (error) {
     console.error("Refine request error:", error);
+
+    // Check for rate limiting errors
+    const isRateLimited = error instanceof Error &&
+      (error.message.includes("429") ||
+       error.message.includes("quota") ||
+       error.message.includes("rate"));
+
+    if (isRateLimited) {
+      return NextResponse.json(
+        { error: "AI service is temporarily busy. Please try again in a few seconds." },
+        { status: 429 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Failed to refine request" },
       { status: 500 }

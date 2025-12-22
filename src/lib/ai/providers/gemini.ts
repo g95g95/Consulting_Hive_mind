@@ -3,6 +3,26 @@ import type { Tool, ToolResult } from "../tools/registry";
 
 let genAI: GoogleGenerativeAI | null = null;
 
+/**
+ * Sleep helper for retry delays
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Extract retry delay from error message (in seconds)
+ */
+function extractRetryDelay(error: unknown): number {
+  if (error instanceof Error) {
+    const match = error.message.match(/retry in (\d+(?:\.\d+)?)/i);
+    if (match) {
+      return Math.ceil(parseFloat(match[1]) * 1000); // Convert to ms
+    }
+  }
+  return 10000; // Default 10 seconds
+}
+
 function getGeminiClient() {
   if (!genAI) {
     const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY;
@@ -64,18 +84,40 @@ export async function generateGeminiCompletion(
     ? `${systemPrompt}\n\n---\n\nUser: ${userMessage}`
     : userMessage;
 
-  try {
-    const result = await generativeModel.generateContent(fullPrompt);
-    const response = result.response;
+  const maxRetries = 3;
+  let lastError: unknown;
 
-    return {
-      text: response.text(),
-      finishReason: response.candidates?.[0]?.finishReason || "STOP",
-    };
-  } catch (error) {
-    console.error("Gemini API error:", error);
-    throw error;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await generativeModel.generateContent(fullPrompt);
+      const response = result.response;
+
+      return {
+        text: response.text(),
+        finishReason: response.candidates?.[0]?.finishReason || "STOP",
+      };
+    } catch (error) {
+      lastError = error;
+
+      // Check if it's a rate limit error (429)
+      const isRateLimited = error instanceof Error &&
+        (error.message.includes("429") ||
+         error.message.includes("quota") ||
+         error.message.includes("rate"));
+
+      if (isRateLimited && attempt < maxRetries) {
+        const retryDelay = extractRetryDelay(error);
+        console.warn(`Gemini rate limited. Retrying in ${retryDelay}ms (attempt ${attempt}/${maxRetries})`);
+        await sleep(retryDelay);
+        continue;
+      }
+
+      console.error("Gemini API error:", error);
+      throw error;
+    }
   }
+
+  throw lastError;
 }
 
 /**
