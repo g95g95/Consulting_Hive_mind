@@ -1,0 +1,687 @@
+// Prisma schema for Consulting Hive Mind MCP Server
+// Shared with the main Next.js app - same database
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================
+// USER & ORGANIZATION
+// ============================================
+
+model User {
+  id            String   @id @default(cuid())
+  clerkId       String   @unique
+  email         String   @unique
+  firstName     String?
+  lastName      String?
+  imageUrl      String?
+  role          UserRole @default(CLIENT)
+  onboarded     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  consultantProfile ConsultantProfile?
+  clientProfile     ClientProfile?
+  memberships       Membership[]
+  requestsCreated   Request[]          @relation("RequestCreator")
+  bookingsAsClient  Booking[]          @relation("BookingClient")
+  bookingsAsConsultant Booking[]       @relation("BookingConsultant")
+  messagesCreated   Message[]
+  notesCreated      Note[]
+  reviewsGiven      Review[]           @relation("ReviewAuthor")
+  reviewsReceived   Review[]           @relation("ReviewTarget")
+  patternsCreated   Pattern[]
+  promptsCreated    Prompt[]
+  stacksCreated     StackTemplate[]
+  consentLogs       ConsentLog[]
+  auditLogs         AuditLog[]
+  payments          Payment[]
+  entitlements      Entitlement[]
+
+  @@index([clerkId])
+  @@index([email])
+}
+
+enum UserRole {
+  CLIENT
+  CONSULTANT
+  BOTH
+  ADMIN
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  website     String?
+  industry    String?
+  size        OrgSize?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships   Membership[]
+  clientProfile ClientProfile[]
+}
+
+enum OrgSize {
+  SOLO
+  SMALL
+  MEDIUM
+  LARGE
+  ENTERPRISE
+}
+
+model Membership {
+  id             String         @id @default(cuid())
+  userId         String
+  organizationId String
+  role           MembershipRole @default(MEMBER)
+  createdAt      DateTime       @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+// ============================================
+// PROFILES
+// ============================================
+
+model ConsultantProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  headline         String?
+  bio              String?
+  hourlyRate       Int?
+  currency         String   @default("EUR")
+  languages        String[] @default([])
+  timezone         String?
+  linkedinUrl      String?
+  portfolioUrl     String?
+  yearsExperience  Int?
+  isAvailable      Boolean  @default(true)
+  consentDirectory Boolean  @default(true)
+  consentHiveMind  Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skills       ConsultantSkill[]
+  availability Availability[]
+  references   Reference[]
+  offers       Offer[]
+
+  @@index([consentDirectory, isAvailable])
+}
+
+model ClientProfile {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  organizationId    String?
+  companyName       String?
+  companyRole       String?
+  preferredLanguage String?
+  billingEmail      String?
+  billingAddress    String?
+  vatNumber         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id])
+}
+
+// ============================================
+// SKILLS & AVAILABILITY
+// ============================================
+
+model SkillTag {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  category    String?
+  description String?
+  createdAt   DateTime @default(now())
+
+  consultantSkills ConsultantSkill[]
+  requestSkills    RequestSkill[]
+}
+
+model ConsultantSkill {
+  id           String     @id @default(cuid())
+  profileId    String
+  skillTagId   String
+  level        SkillLevel @default(INTERMEDIATE)
+  yearsUsing   Int?
+  createdAt    DateTime   @default(now())
+
+  profile  ConsultantProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skillTag SkillTag          @relation(fields: [skillTagId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, skillTagId])
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+}
+
+model Availability {
+  id        String   @id @default(cuid())
+  profileId String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  createdAt DateTime @default(now())
+
+  profile ConsultantProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+model Reference {
+  id          String   @id @default(cuid())
+  profileId   String
+  name        String
+  company     String?
+  role        String?
+  email       String?
+  linkedinUrl String?
+  testimonial String?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  profile ConsultantProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// REQUESTS & MATCHING
+// ============================================
+
+model Request {
+  id              String        @id @default(cuid())
+  creatorId       String
+  title           String
+  rawDescription  String
+  refinedSummary  String?
+  constraints     String?
+  desiredOutcome  String?
+  suggestedDuration Int?
+  urgency         Urgency       @default(NORMAL)
+  budget          Int?
+  currency        String        @default("EUR")
+  status          RequestStatus @default(DRAFT)
+  sensitiveData   Boolean       @default(false)
+  isPublic        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  creator  User           @relation("RequestCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  skills   RequestSkill[]
+  offers   Offer[]
+  bookings Booking[]
+
+  @@index([isPublic, status])
+  @@index([creatorId])
+}
+
+model RequestSkill {
+  id         String @id @default(cuid())
+  requestId  String
+  skillTagId String
+
+  request  Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  skillTag SkillTag @relation(fields: [skillTagId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, skillTagId])
+}
+
+enum RequestStatus {
+  DRAFT
+  PUBLISHED
+  MATCHING
+  BOOKED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Urgency {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model Offer {
+  id           String      @id @default(cuid())
+  requestId    String
+  consultantId String
+  message      String?
+  proposedRate Int?
+  status       OfferStatus @default(PENDING)
+  matchScore   Float?
+  matchReason  String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  request    Request           @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  consultant ConsultantProfile @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+
+  @@unique([requestId, consultantId])
+  @@index([consultantId, status])
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  WITHDRAWN
+}
+
+// ============================================
+// BOOKING & ENGAGEMENT
+// ============================================
+
+model Booking {
+  id             String        @id @default(cuid())
+  requestId      String?
+  clientId       String
+  consultantId   String
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+  duration       Int
+  status         BookingStatus @default(PENDING)
+  videoLink      String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  request    Request?    @relation(fields: [requestId], references: [id])
+  client     User        @relation("BookingClient", fields: [clientId], references: [id])
+  consultant User        @relation("BookingConsultant", fields: [consultantId], references: [id])
+  engagement Engagement?
+  payment    Payment?
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Engagement {
+  id           String           @id @default(cuid())
+  bookingId    String           @unique
+  status       EngagementStatus @default(ACTIVE)
+  agenda       String?
+  videoLink    String?
+  startedAt    DateTime?
+  endedAt      DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  booking        Booking         @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  messages       Message[]
+  notes          Note[]
+  artifacts      ArtifactLink[]
+  checklistItems ChecklistItem[]
+  transferPack   TransferPack?
+  reviews        Review[]
+  patterns       Pattern[]
+  prompts        Prompt[]
+  stacks         StackTemplate[]
+}
+
+enum EngagementStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  TRANSFERRED
+}
+
+model Message {
+  id           String   @id @default(cuid())
+  engagementId String
+  authorId     String
+  content      String
+  isSystem     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  author     User       @relation(fields: [authorId], references: [id])
+
+  @@index([engagementId, createdAt])
+}
+
+model Note {
+  id           String   @id @default(cuid())
+  engagementId String
+  authorId     String
+  title        String?
+  content      String
+  isPrivate    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  author     User       @relation(fields: [authorId], references: [id])
+}
+
+model ArtifactLink {
+  id           String       @id @default(cuid())
+  engagementId String
+  title        String
+  url          String
+  type         ArtifactType @default(LINK)
+  createdAt    DateTime     @default(now())
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+}
+
+enum ArtifactType {
+  LINK
+  DOCUMENT
+  CODE
+  DESIGN
+  VIDEO
+  OTHER
+}
+
+model ChecklistItem {
+  id           String   @id @default(cuid())
+  engagementId String
+  text         String
+  isCompleted  Boolean  @default(false)
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// TRANSFER PACK
+// ============================================
+
+model TransferPack {
+  id                     String   @id @default(cuid())
+  engagementId           String   @unique
+  summary                String?
+  keyDecisions           String?
+  runbook                String?
+  nextSteps              String?
+  internalizationChecklist String?
+  aiGenerated            Boolean  @default(false)
+  isFinalized            Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// REVIEWS
+// ============================================
+
+model Review {
+  id           String     @id @default(cuid())
+  engagementId String
+  authorId     String
+  targetId     String
+  type         ReviewType
+  rating       Int
+  comment      String?
+  isPublic     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+
+  engagement Engagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+  author     User       @relation("ReviewAuthor", fields: [authorId], references: [id])
+  target     User       @relation("ReviewTarget", fields: [targetId], references: [id])
+
+  @@unique([engagementId, authorId, type])
+}
+
+enum ReviewType {
+  CLIENT_TO_CONSULTANT
+  CONSULTANT_TO_CLIENT
+}
+
+// ============================================
+// PAYMENTS & ENTITLEMENTS
+// ============================================
+
+model ProductSKU {
+  id           String      @id @default(cuid())
+  name         String
+  description  String?
+  duration     Int
+  priceAmount  Int
+  currency     String      @default("EUR")
+  stripeId     String?     @unique
+  isActive     Boolean     @default(true)
+  type         ProductType @default(SESSION)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  payments Payment[]
+}
+
+enum ProductType {
+  SESSION
+  AUDIT
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  userId            String
+  bookingId         String?       @unique
+  productSKUId      String
+  amount            Int
+  currency          String        @default("EUR")
+  status            PaymentStatus @default(PENDING)
+  stripeSessionId   String?       @unique
+  stripePaymentId   String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id])
+  booking    Booking?    @relation(fields: [bookingId], references: [id])
+  productSKU ProductSKU  @relation(fields: [productSKUId], references: [id])
+  entitlement Entitlement?
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+model Entitlement {
+  id        String            @id @default(cuid())
+  userId    String
+  paymentId String            @unique
+  type      EntitlementType
+  status    EntitlementStatus @default(ACTIVE)
+  expiresAt DateTime?
+  usedAt    DateTime?
+  createdAt DateTime          @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  payment Payment @relation(fields: [paymentId], references: [id])
+}
+
+enum EntitlementType {
+  SESSION_30
+  SESSION_60
+  SESSION_90
+  AUDIT
+}
+
+enum EntitlementStatus {
+  ACTIVE
+  USED
+  EXPIRED
+  REVOKED
+}
+
+// ============================================
+// HIVE MIND
+// ============================================
+
+model Pattern {
+  id              String          @id @default(cuid())
+  creatorId       String
+  engagementId    String?
+  title           String
+  description     String
+  content         String
+  category        String?
+  tags            String[]        @default([])
+  status          HiveItemStatus  @default(PENDING_REVIEW)
+  redactionJobId  String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  creator       User           @relation(fields: [creatorId], references: [id])
+  engagement    Engagement?    @relation(fields: [engagementId], references: [id])
+  redactionJob  RedactionJob?  @relation(fields: [redactionJobId], references: [id])
+}
+
+model Prompt {
+  id              String          @id @default(cuid())
+  creatorId       String
+  engagementId    String?
+  title           String
+  description     String?
+  content         String
+  useCase         String?
+  tags            String[]        @default([])
+  status          HiveItemStatus  @default(PENDING_REVIEW)
+  redactionJobId  String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  creator       User           @relation(fields: [creatorId], references: [id])
+  engagement    Engagement?    @relation(fields: [engagementId], references: [id])
+  redactionJob  RedactionJob?  @relation(fields: [redactionJobId], references: [id])
+}
+
+model StackTemplate {
+  id              String          @id @default(cuid())
+  creatorId       String
+  engagementId    String?
+  title           String
+  description     String
+  content         String
+  category        String?
+  tags            String[]        @default([])
+  uiTech          String?
+  backendTech     String?
+  databaseTech    String?
+  releaseTech     String?
+  status          HiveItemStatus  @default(PENDING_REVIEW)
+  redactionJobId  String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  creator       User           @relation(fields: [creatorId], references: [id])
+  engagement    Engagement?    @relation(fields: [engagementId], references: [id])
+  redactionJob  RedactionJob?  @relation(fields: [redactionJobId], references: [id])
+}
+
+enum HiveItemStatus {
+  PENDING_REVIEW
+  REDACTING
+  APPROVED
+  REJECTED
+}
+
+// ============================================
+// SAFETY & COMPLIANCE
+// ============================================
+
+model ConsentLog {
+  id          String      @id @default(cuid())
+  userId      String
+  type        ConsentType
+  granted     Boolean
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}
+
+enum ConsentType {
+  TERMS_OF_SERVICE
+  PRIVACY_POLICY
+  DIRECTORY_LISTING
+  HIVE_MIND_CONTRIBUTION
+  ANALYTICS
+  MARKETING
+}
+
+model RedactionJob {
+  id            String            @id @default(cuid())
+  originalText  String
+  redactedText  String?
+  detectedPII   String[]          @default([])
+  detectedSecrets String[]        @default([])
+  status        RedactionStatus   @default(PENDING)
+  aiProvider    String?
+  errorMessage  String?
+  createdAt     DateTime          @default(now())
+  completedAt   DateTime?
+
+  patterns Pattern[]
+  prompts  Prompt[]
+  stacks   StackTemplate[]
+}
+
+enum RedactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([createdAt])
+}

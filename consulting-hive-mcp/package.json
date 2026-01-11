@@ -1,0 +1,41 @@
+{
+  "name": "consulting-hive-mcp",
+  "version": "0.1.0",
+  "description": "MCP Server for Consulting Hive Mind platform",
+  "type": "module",
+  "main": "dist/server/dual-server.js",
+  "scripts": {
+    "dev": "tsx watch src/server/dual-server.ts",
+    "build": "tsc && npm run build:openapi",
+    "build:openapi": "tsx scripts/generate-openapi.ts",
+    "start": "node dist/server/dual-server.js",
+    "start:mcp": "node dist/server/mcp/index.js",
+    "start:rest": "node dist/server/rest/index.js",
+    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@hono/node-server": "^1.11.0",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@prisma/client": "^6.19.1",
+    "hono": "^4.4.0",
+    "jose": "^5.2.0",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "eslint": "^9",
+    "prisma": "^6.19.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5",
+    "vitest": "^4.0.15"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
