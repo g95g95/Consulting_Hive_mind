@@ -27,7 +27,9 @@
       "Bash(npx prisma db seed:*)",
       "Bash(npm run db:seed:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npm test:*)",
+      "Bash(npx prisma migrate:*)"
     ],
     "deny": [],
     "ask": []

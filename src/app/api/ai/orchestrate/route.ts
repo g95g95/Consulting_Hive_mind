@@ -5,6 +5,7 @@ import {
   detectIntent,
   type OrchestratorIntent,
 } from "@/lib/ai/orchestrator";
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
 
 /**
  * POST /api/ai/orchestrate
@@ -27,6 +28,11 @@ export async function POST(request: NextRequest) {
         { error: "Unauthorized" },
         { status: 401 }
       );
+    }
+
+    const rateLimit = checkRateLimit(`ai:${userId}`, RATE_LIMITS.ai);
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit.resetIn);
     }
 
     const body = await request.json();

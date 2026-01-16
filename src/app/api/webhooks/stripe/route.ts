@@ -5,6 +5,13 @@ import { db } from "@/lib/db";
 import Stripe from "stripe";
 
 export async function POST(request: Request) {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    console.error("Missing STRIPE_WEBHOOK_SECRET");
+    return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
+  }
+
   const body = await request.text();
   const headersList = await headers();
   const signature = headersList.get("stripe-signature");
@@ -16,11 +23,7 @@ export async function POST(request: Request) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     console.error("Webhook signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -39,6 +42,16 @@ export async function POST(request: Request) {
             break;
           }
 
+          // Idempotency check: skip if already processed
+          const existingPayment = await db.payment.findUnique({
+            where: { stripeSessionId: session.id },
+          });
+
+          if (existingPayment?.status === "SUCCEEDED") {
+            console.log(`Webhook already processed for session ${session.id}, skipping`);
+            break;
+          }
+
           // Update payment
           const payment = await db.payment.update({
             where: { stripeSessionId: session.id },
@@ -48,39 +61,46 @@ export async function POST(request: Request) {
             },
           });
 
-          // Create entitlement
-          const productSKU = await db.productSKU.findUnique({
-            where: { id: productSKUId },
+          // Check if entitlement already exists (idempotency)
+          const existingEntitlement = await db.entitlement.findUnique({
+            where: { paymentId: payment.id },
           });
 
-          if (productSKU) {
-            let entitlementType: "SESSION_30" | "SESSION_60" | "SESSION_90" | "AUDIT";
-            if (productSKU.type === "AUDIT") {
-              entitlementType = "AUDIT";
-            } else {
-              switch (productSKU.duration) {
-                case 30:
-                  entitlementType = "SESSION_30";
-                  break;
-                case 90:
-                  entitlementType = "SESSION_90";
-                  break;
-                default:
-                  entitlementType = "SESSION_60";
-              }
-            }
-
-            await db.entitlement.create({
-              data: {
-                userId,
-                paymentId: payment.id,
-                type: entitlementType,
-                status: "ACTIVE",
-              },
+          if (!existingEntitlement) {
+            // Create entitlement
+            const productSKU = await db.productSKU.findUnique({
+              where: { id: productSKUId },
             });
+
+            if (productSKU) {
+              let entitlementType: "SESSION_30" | "SESSION_60" | "SESSION_90" | "AUDIT";
+              if (productSKU.type === "AUDIT") {
+                entitlementType = "AUDIT";
+              } else {
+                switch (productSKU.duration) {
+                  case 30:
+                    entitlementType = "SESSION_30";
+                    break;
+                  case 90:
+                    entitlementType = "SESSION_90";
+                    break;
+                  default:
+                    entitlementType = "SESSION_60";
+                }
+              }
+
+              await db.entitlement.create({
+                data: {
+                  userId,
+                  paymentId: payment.id,
+                  type: entitlementType,
+                  status: "ACTIVE",
+                },
+              });
+            }
           }
 
-          // Update booking status
+          // Update booking status (idempotent - already CONFIRMED is fine)
           await db.booking.update({
             where: { id: bookingId },
             data: { status: "CONFIRMED" },
@@ -93,7 +113,7 @@ export async function POST(request: Request) {
               action: "PAYMENT_COMPLETED",
               entity: "Payment",
               entityId: payment.id,
-              metadata: { bookingId, amount: session.amount_total },
+              metadata: { bookingId, amount: session.amount_total, stripeEventId: event.id },
             },
           });
 

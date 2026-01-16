@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sendEmail, getNewRequestEmailHtml } from "@/lib/email";
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
+import { createRequestSchema, validateSchema } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -52,7 +54,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const data = await request.json();
+    const rateLimit = checkRateLimit(`requests:${user.id}`, RATE_LIMITS.strict);
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit.resetIn);
+    }
+
+    const rawData = await request.json();
+    const validation = validateSchema(createRequestSchema, rawData);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
     const {
       title,
       rawDescription,
@@ -66,7 +78,7 @@ export async function POST(request: Request) {
       sensitiveData,
       isPublic,
       consultantId,
-    } = data;
+    } = validation.data;
 
     // Create the request
     const newRequest = await db.request.create({
@@ -79,7 +91,7 @@ export async function POST(request: Request) {
         desiredOutcome,
         suggestedDuration: suggestedDuration || 60,
         urgency: urgency || "NORMAL",
-        budget: budget ? parseInt(budget) * 100 : null, // Convert to cents
+        budget: budget ? parseInt(String(budget)) * 100 : null, // Convert to cents
         sensitiveData: sensitiveData || false,
         isPublic: isPublic !== false,
         status: "PUBLISHED",
@@ -127,8 +139,11 @@ export async function POST(request: Request) {
         });
 
         // Send email notification to consultant
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-        const requestUrl = `${baseUrl}/app/requests`;
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+        if (!baseUrl) {
+          console.error("NEXT_PUBLIC_APP_URL not configured");
+        }
+        const requestUrl = `${baseUrl || ""}/app/requests`;
 
         await sendEmail({
           to: consultantProfile.user.email,

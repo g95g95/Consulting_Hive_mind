@@ -1,7 +1,8 @@
 // Prisma schema for Consulting Hive Mind MVP
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -124,6 +125,8 @@ model ConsultantProfile {
   availability Availability[]
   references   Reference[]
   offers       Offer[]
+
+  @@index([consentDirectory, isAvailable])
 }
 
 model ClientProfile {
@@ -234,6 +237,9 @@ model Request {
   skills   RequestSkill[]
   offers   Offer[]
   bookings Booking[]
+
+  @@index([isPublic, status])
+  @@index([creatorId])
 }
 
 model RequestSkill {
@@ -280,6 +286,7 @@ model Offer {
   consultant ConsultantProfile @relation(fields: [consultantId], references: [id], onDelete: Cascade)
 
   @@unique([requestId, consultantId])
+  @@index([consultantId, status])
 }
 
 enum OfferStatus {

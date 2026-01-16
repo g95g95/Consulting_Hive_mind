@@ -8,7 +8,6 @@ import {
   MessageSquare,
   BookOpen,
   User,
-  Settings,
   PlusCircle,
   LayoutDashboard,
   Shield,
@@ -33,7 +32,8 @@ const navigation = [
 
 const userNavigation = [
   { name: "Profile", href: "/app/profile", icon: User },
-  { name: "Settings", href: "/app/settings", icon: Settings },
+  // Settings page hidden until implemented
+  // { name: "Settings", href: "/app/settings", icon: Settings },
 ];
 
 export function AppSidebar({ user }: { user: User }) {

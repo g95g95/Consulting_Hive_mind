@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, FileText, CreditCard, BookOpen, Shield } from "lucide-react";
+import { ModerationQueue } from "@/components/admin/moderation-queue";
 
 export default async function AdminPage() {
   const user = await getCurrentUser();
@@ -148,20 +149,11 @@ export default async function AdminPage() {
             <CardHeader>
               <CardTitle className="text-white">Pending Contributions</CardTitle>
               <CardDescription className="text-slate-400">
-                Hive Mind contributions awaiting review
+                Hive Mind contributions awaiting review ({pendingPatterns} patterns, {pendingPrompts} prompts, {pendingStacks} stacks)
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {pendingContributions === 0 ? (
-                <p className="text-slate-500 text-center py-8">
-                  No contributions pending review
-                </p>
-              ) : (
-                <p className="text-slate-400">
-                  {pendingPatterns} patterns, {pendingPrompts} prompts, {pendingStacks} stacks
-                  waiting for review.
-                </p>
-              )}
+              <ModerationQueue />
             </CardContent>
           </Card>
         </TabsContent>

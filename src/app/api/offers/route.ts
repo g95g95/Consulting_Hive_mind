@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getMatcherAgent } from "@/lib/ai/agents";
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
+import { createOfferSchema, validateSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
@@ -9,6 +11,11 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const rateLimit = checkRateLimit(`offers:${user.id}`, RATE_LIMITS.strict);
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit.resetIn);
     }
 
     // Check user is a consultant
@@ -27,7 +34,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Consultant profile not found" }, { status: 404 });
     }
 
-    const { requestId, message, proposedRate } = await request.json();
+    const rawData = await request.json();
+    const validation = validateSchema(createOfferSchema, rawData);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
+    const { requestId, message, proposedRate } = validation.data;
 
     // Check request exists and is open
     const req = await db.request.findUnique({
@@ -94,7 +107,7 @@ export async function POST(request: Request) {
         requestId,
         consultantId: consultantProfile.id,
         message,
-        proposedRate: proposedRate ? parseInt(proposedRate) * 100 : consultantProfile.hourlyRate,
+        proposedRate: proposedRate ? parseInt(String(proposedRate)) * 100 : consultantProfile.hourlyRate,
         status: "PENDING",
         matchScore,
         matchReason,

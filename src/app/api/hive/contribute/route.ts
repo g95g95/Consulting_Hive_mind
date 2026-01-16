@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getRedactionAgent } from "@/lib/ai/agents";
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from "@/lib/rate-limit";
+import { hiveContributionSchema, validateSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
@@ -11,6 +13,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const rateLimit = checkRateLimit(`hive:${user.id}`, RATE_LIMITS.strict);
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit.resetIn);
+    }
+
+    const rawData = await request.json();
+    const validation = validateSchema(hiveContributionSchema, rawData);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
     const {
       type,
       title,
@@ -18,16 +31,11 @@ export async function POST(request: Request) {
       content,
       useCase,
       tags,
-      // Stack-specific fields
       uiTech,
       backendTech,
       databaseTech,
       releaseTech,
-    } = await request.json();
-
-    if (!type || !title || !content) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+    } = validation.data;
 
     // Use RedactionAgent to detect and redact sensitive content
     const redactionAgent = getRedactionAgent();

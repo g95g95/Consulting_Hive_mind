@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { PostHogProvider } from "@/components/posthog-provider";
 import { initializeApp } from "@/lib/startup";
 import "./globals.css";
 
@@ -42,7 +44,11 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
+            <Suspense fallback={null}>
+              <PostHogProvider>
+                {children}
+              </PostHogProvider>
+            </Suspense>
             <Toaster />
           </ThemeProvider>
         </body>

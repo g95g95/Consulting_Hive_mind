@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consulting Hive Mind - Guida all'Architettura AI</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --dark: #1e1b4b;
+            --light: #f8fafc;
+            --gray: #64748b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #1e293b;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Cover Page */
+        .cover {
+            background: white;
+            border-radius: 24px;
+            padding: 80px 60px;
+            text-align: center;
+            margin-bottom: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cover::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--success));
+        }
+
+        .cover .logo {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .cover h1 {
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 16px;
+            letter-spacing: -1px;
+        }
+
+        .cover .subtitle {
+            font-size: 24px;
+            color: var(--gray);
+            font-weight: 300;
+            margin-bottom: 40px;
+        }
+
+        .cover .tagline {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 16px 32px;
+            border-radius: 50px;
+            display: inline-block;
+            font-weight: 500;
+            font-size: 18px;
+        }
+
+        .cover .version {
+            margin-top: 40px;
+            color: var(--gray);
+            font-size: 14px;
+        }
+
+        /* Page */
+        .page {
+            background: white;
+            border-radius: 24px;
+            padding: 60px;
+            margin-bottom: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+            page-break-inside: avoid;
+        }
+
+        .page h2 {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .page h2 .icon {
+            font-size: 40px;
+        }
+
+        .page h3 {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin: 32px 0 16px;
+        }
+
+        .page p {
+            font-size: 17px;
+            color: #475569;
+            margin-bottom: 16px;
+        }
+
+        /* Info Box */
+        .info-box {
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+            border-left: 4px solid var(--primary);
+            padding: 24px;
+            border-radius: 0 16px 16px 0;
+            margin: 24px 0;
+        }
+
+        .info-box.warning {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-left-color: var(--secondary);
+        }
+
+        .info-box.success {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            border-left-color: var(--success);
+        }
+
+        .info-box h4 {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Architecture Diagram */
+        .diagram {
+            background: linear-gradient(135deg, #1e1b4b, #312e81);
+            border-radius: 20px;
+            padding: 40px;
+            margin: 32px 0;
+            color: white;
+            overflow-x: auto;
+        }
+
+        .diagram-title {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 32px;
+            color: #c7d2fe;
+        }
+
+        .diagram-flow {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .diagram-box {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 16px;
+            padding: 20px 32px;
+            text-align: center;
+            min-width: 280px;
+        }
+
+        .diagram-box.main {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border: none;
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.4);
+        }
+
+        .diagram-box h5 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .diagram-box p {
+            font-size: 14px;
+            color: rgba(255,255,255,0.8);
+            margin: 0;
+        }
+
+        .diagram-arrow {
+            font-size: 32px;
+            color: var(--secondary);
+        }
+
+        .diagram-agents {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .agent-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 16px 20px;
+            text-align: center;
+            flex: 1;
+            min-width: 140px;
+            max-width: 180px;
+        }
+
+        .agent-card .emoji {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .agent-card h6 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .agent-card p {
+            font-size: 12px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin: 32px 0;
+        }
+
+        .card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 28px;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 10px 40px rgba(99, 102, 241, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .card .card-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .card h4 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 12px;
+        }
+
+        .card p {
+            font-size: 15px;
+            color: var(--gray);
+            margin: 0;
+        }
+
+        /* Process Steps */
+        .steps {
+            margin: 32px 0;
+        }
+
+        .step {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 32px;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            flex-shrink: 0;
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .step-content h4 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .step-content p {
+            font-size: 16px;
+            color: var(--gray);
+            margin: 0;
+        }
+
+        /* Table */
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 24px 0;
+            border-radius: 16px;
+            border: 2px solid #e2e8f0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: linear-gradient(135deg, var(--dark), #312e81);
+            color: white;
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 15px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.primary {
+            background: #eff6ff;
+            color: var(--primary);
+        }
+
+        .badge.success {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .badge.warning {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        /* FAQ */
+        .faq-item {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+
+        .faq-item h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .faq-item h4::before {
+            content: '?';
+            width: 28px;
+            height: 28px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .faq-item p {
+            font-size: 16px;
+            color: var(--gray);
+            margin: 0;
+            padding-left: 40px;
+        }
+
+        /* Code */
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: #f1f5f9;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--primary-dark);
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .footer p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+            }
+
+            .container {
+                max-width: 100%;
+                padding: 0;
+            }
+
+            .page, .cover {
+                box-shadow: none;
+                border-radius: 0;
+                margin-bottom: 0;
+                page-break-after: always;
+            }
+
+            .diagram {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Cover Page -->
+        <div class="cover">
+            <div class="logo">🐝</div>
+            <h1>Consulting Hive Mind</h1>
+            <p class="subtitle">Guida all'Architettura AI</p>
+            <div class="tagline">Intelligenza Collettiva per Consulenze Efficaci</div>
+            <p class="version">Versione 1.0 | Dicembre 2024</p>
+        </div>
+
+        <!-- Page 1: Cos'e -->
+        <div class="page">
+            <h2><span class="icon">🎯</span> Cos'e Consulting Hive Mind?</h2>
+
+            <p>Immagina di avere bisogno di un esperto per risolvere un problema tecnico nella tua azienda. Tradizionalmente dovresti:</p>
+
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-icon">🔍</div>
+                    <h4>Cercare l'esperto giusto</h4>
+                    <p>Ore spese a navigare LinkedIn, chiedere referenze, valutare CV...</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">📝</div>
+                    <h4>Spiegare il problema</h4>
+                    <p>Ripetere la stessa storia a 10 persone diverse sperando che capiscano...</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">💸</div>
+                    <h4>Pagare intermediari</h4>
+                    <p>Agenzie che prendono commissioni enormi senza aggiungere valore...</p>
+                </div>
+            </div>
+
+            <div class="info-box success">
+                <h4>✨ La Nostra Soluzione</h4>
+                <p><strong>Consulting Hive Mind</strong> e una piattaforma che usa l'Intelligenza Artificiale per connettere chi ha un problema con chi sa risolverlo, in modo veloce, trasparente e senza sprechi.</p>
+            </div>
+
+            <h3>La Filosofia: Ponteggio, Non Pedagio</h3>
+            <p>A differenza delle societa di consulenza tradizionali che creano dipendenza, la nostra piattaforma e progettata per <strong>renderti autonomo</strong>. Ogni consulenza termina con un "Transfer Pack" che ti insegna cosa e stato fatto e come replicarlo in futuro.</p>
+
+            <div class="info-box warning">
+                <h4>🎓 Obiettivo Finale</h4>
+                <p>Il miglior risultato di una consulenza non e "ti richiameremo", ma <strong>"non hai piu bisogno di noi"</strong>.</p>
+            </div>
+        </div>
+
+        <!-- Page 2: Come Funziona -->
+        <div class="page">
+            <h2><span class="icon">⚙️</span> Come Funziona l'AI?</h2>
+
+            <p>Al cuore della piattaforma c'e un <strong>Orchestratore AI</strong> che coordina diversi "agenti" specializzati. Pensa a loro come a un team di assistenti virtuali, ognuno esperto in un compito specifico.</p>
+
+            <div class="diagram">
+                <div class="diagram-title">Architettura del Sistema AI</div>
+                <div class="diagram-flow">
+                    <div class="diagram-box">
+                        <h5>👤 Tu (Cliente o Consulente)</h5>
+                        <p>Fai una richiesta alla piattaforma</p>
+                    </div>
+                    <div class="diagram-arrow">⬇️</div>
+                    <div class="diagram-box main">
+                        <h5>🧠 ORCHESTRATORE</h5>
+                        <p>Capisce cosa vuoi e smista al giusto agente</p>
+                    </div>
+                    <div class="diagram-arrow">⬇️</div>
+                    <div class="diagram-agents">
+                        <div class="agent-card">
+                            <div class="emoji">📋</div>
+                            <h6>Intake</h6>
+                            <p>Capisce il problema</p>
+                        </div>
+                        <div class="agent-card">
+                            <div class="emoji">🔗</div>
+                            <h6>Matcher</h6>
+                            <p>Trova l'esperto</p>
+                        </div>
+                        <div class="agent-card">
+                            <div class="emoji">📦</div>
+                            <h6>Transfer</h6>
+                            <p>Crea documentazione</p>
+                        </div>
+                        <div class="agent-card">
+                            <div class="emoji">🔒</div>
+                            <h6>Redaction</h6>
+                            <p>Protegge i dati</p>
+                        </div>
+                        <div class="agent-card">
+                            <div class="emoji">📚</div>
+                            <h6>Hive</h6>
+                            <p>Gestisce la libreria</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <h4>💡 Perche Questa Architettura?</h4>
+                <p>Invece di un unico AI "tuttologa", abbiamo specialisti. Come in un ospedale: non vai dal cardiologo per un mal di denti. Ogni agente e ottimizzato per il suo compito specifico.</p>
+            </div>
+        </div>
+
+        <!-- Page 3: Gli Agenti -->
+        <div class="page">
+            <h2><span class="icon">🤖</span> Gli Agenti AI Spiegati Semplici</h2>
+
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>📋 Intake Agent - "Il Traduttore"</h4>
+                        <p>Quando descrivi il tuo problema in modo confuso ("ho un casino con i dati e non so che fare"), lui lo trasforma in una richiesta chiara e strutturata. Suggerisce anche quanto tempo servirebbe per la consulenza (30, 60 o 90 minuti).</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>🔗 Matcher Agent - "Il Cacciatore di Teste"</h4>
+                        <p>Una volta chiarito il problema, cerca tra tutti i consulenti disponibili quelli piu adatti. Non guarda solo le competenze, ma anche le recensioni, la disponibilita e il budget. Ti spiega PERCHE ogni consulente e adatto.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>📦 Transfer Agent - "L'Archivista"</h4>
+                        <p>Alla fine della consulenza, crea il "Transfer Pack": un documento che riassume tutto cio che e stato deciso, con istruzioni passo-passo e una checklist per verificare che tu abbia davvero imparato.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>🔒 Redaction Agent - "Il Guardiano della Privacy"</h4>
+                        <p>Prima che qualsiasi contenuto venga condiviso nella libreria comune, questo agente rimuove tutti i dati sensibili: nomi, email, password, informazioni aziendali riservate. Doppia verifica: prima automatica, poi con AI.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h4>📚 Hive Contribution Agent - "L'Editor"</h4>
+                        <p>Quando contribuisci alla libreria condivisa (pattern, prompt, template), questo agente migliora il tuo contenuto: titoli piu chiari, descrizioni migliori, tag appropriati.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page 4: Flusso Pratico -->
+        <div class="page">
+            <h2><span class="icon">🔄</span> Un Esempio Pratico</h2>
+
+            <p>Vediamo come funziona quando Maria, proprietaria di una PMI, ha bisogno di aiuto:</p>
+
+            <div class="faq-item">
+                <h4>Passo 1: Maria descrive il problema</h4>
+                <p><em>"Abbiamo un gestionale vecchio che non parla col nuovo e-commerce, i dati sono sparsi ovunque e il mio team perde ore a copiare cose a mano. Non so nemmeno da dove iniziare."</em></p>
+            </div>
+
+            <div class="faq-item">
+                <h4>Passo 2: L'Intake Agent traduce</h4>
+                <p><strong>Problema:</strong> Integrazione tra sistema legacy (gestionale) e piattaforma e-commerce moderna.<br>
+                <strong>Impatto:</strong> Perdita di produttivita per data entry manuale.<br>
+                <strong>Competenze richieste:</strong> ERP Integration, API Design, Legacy Modernization<br>
+                <strong>Durata suggerita:</strong> 60 minuti</p>
+            </div>
+
+            <div class="faq-item">
+                <h4>Passo 3: Il Matcher trova gli esperti</h4>
+                <p><strong>Marco R.</strong> - Score 92/100<br>
+                "15 anni di esperienza in integrazioni ERP, ha gia risolto casi simili con Zucchetti e WooCommerce. Disponibile questa settimana."</p>
+            </div>
+
+            <div class="faq-item">
+                <h4>Passo 4: Dopo la consulenza - Transfer Pack</h4>
+                <p><strong>Sommario:</strong> Definita strategia di integrazione via API REST con middleware custom.<br>
+                <strong>Decisioni chiave:</strong> Usare n8n come middleware, prioritizzare sincronizzazione ordini.<br>
+                <strong>Checklist:</strong> ✓ So cos'e un'API ✓ Capisco il flusso dati ✓ Ho il piano d'azione</p>
+            </div>
+
+            <div class="info-box success">
+                <h4>🎉 Risultato</h4>
+                <p>Maria ora sa esattamente cosa fare, ha documentazione chiara, e potrebbe gestire problemi simili in futuro senza consulente. <strong>Autonomia acquisita!</strong></p>
+            </div>
+        </div>
+
+        <!-- Page 5: La Hive Library -->
+        <div class="page">
+            <h2><span class="icon">📚</span> La "Hive Library" - La Mente Collettiva</h2>
+
+            <p>Ogni consulenza lascia dietro di se conoscenza preziosa. Invece di perderla, la raccogliamo (in forma anonimizzata) in una libreria condivisa accessibile a tutti i membri.</p>
+
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-icon">🧩</div>
+                    <h4>Pattern</h4>
+                    <p>Soluzioni ricorrenti a problemi comuni. "Come integrare X con Y", "Come scalare Z".</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">💬</div>
+                    <h4>Prompt</h4>
+                    <p>Template per usare l'AI efficacemente. Prompt testati e ottimizzati dalla community.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🏗️</div>
+                    <h4>Stack Template</h4>
+                    <p>Combinazioni tecnologiche vincenti. "Per un e-commerce usa: React + Node + PostgreSQL + Vercel".</p>
+                </div>
+            </div>
+
+            <h3>Come Viene Protetta la Privacy?</h3>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tipo di Dato</th>
+                            <th>Cosa Succede</th>
+                            <th>Esempio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Nomi persone</td>
+                            <td><span class="badge primary">[NAME]</span></td>
+                            <td>"Mario Rossi" → "[NAME]"</td>
+                        </tr>
+                        <tr>
+                            <td>Email</td>
+                            <td><span class="badge primary">[EMAIL]</span></td>
+                            <td>"mario@azienda.it" → "[EMAIL]"</td>
+                        </tr>
+                        <tr>
+                            <td>Aziende</td>
+                            <td><span class="badge primary">[COMPANY]</span></td>
+                            <td>"Acme SpA" → "[COMPANY]"</td>
+                        </tr>
+                        <tr>
+                            <td>API Keys</td>
+                            <td><span class="badge warning">[REDACTED_SECRET]</span></td>
+                            <td>"sk-abc123..." → "[REDACTED_SECRET]"</td>
+                        </tr>
+                        <tr>
+                            <td>Password</td>
+                            <td><span class="badge warning">[REDACTED_PASSWORD]</span></td>
+                            <td>Completamente rimossa</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="info-box warning">
+                <h4>⚠️ Doppia Sicurezza</h4>
+                <p>Il Redaction Agent usa due passaggi: prima pattern automatici (regex), poi analisi AI per catturare cio che sfugge. Se c'e dubbio, il contenuto viene segnalato per revisione umana.</p>
+            </div>
+        </div>
+
+        <!-- Page 6: Sicurezza -->
+        <div class="page">
+            <h2><span class="icon">🛡️</span> Sicurezza e Privacy</h2>
+
+            <p>La sicurezza non e un optional, e nel DNA della piattaforma.</p>
+
+            <h3>Principi Fondamentali</h3>
+
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-icon">🔐</div>
+                    <h4>Accesso Solo Membri</h4>
+                    <p>Niente e pubblico. Devi autenticarti per vedere qualsiasi cosa oltre la landing page.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🎭</div>
+                    <h4>Anonimizzazione Obbligatoria</h4>
+                    <p>Tutto cio che entra nella libreria condivisa passa per redazione automatica + AI.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">📋</div>
+                    <h4>Audit Trail</h4>
+                    <p>Ogni azione e registrata. Sappiamo chi ha fatto cosa e quando.</p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">✋</div>
+                    <h4>Consenso Esplicito</h4>
+                    <p>Niente viene condiviso senza il tuo permesso. Controlli tu cosa rendere disponibile.</p>
+                </div>
+            </div>
+
+            <h3>Livelli di Confidenza nella Redazione</h3>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Livello</th>
+                            <th>Significato</th>
+                            <th>Azione</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="badge success">HIGH</span></td>
+                            <td>Tutti i pattern rilevati sono chiari</td>
+                            <td>Approvazione automatica</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge warning">MEDIUM</span></td>
+                            <td>Alcuni elementi ambigui</td>
+                            <td>Revisione suggerita</td>
+                        </tr>
+                        <tr>
+                            <td><span class="badge primary">LOW</span></td>
+                            <td>Molti elementi incerti</td>
+                            <td>Revisione umana obbligatoria</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="info-box">
+                <h4>🔑 Autenticazione</h4>
+                <p>Usiamo <strong>Clerk</strong> con supporto per Google, LinkedIn e Facebook. Le tue credenziali sono gestite da provider affidabili, non memorizziamo password.</p>
+            </div>
+        </div>
+
+        <!-- Page 7: FAQ -->
+        <div class="page">
+            <h2><span class="icon">❓</span> Domande Frequenti</h2>
+
+            <div class="faq-item">
+                <h4>I miei dati aziendali sono al sicuro?</h4>
+                <p>Assolutamente si. I dati delle tue consulenze sono visibili solo a te e al consulente. Prima di qualsiasi condivisione nella libreria, passano per doppia redazione automatica. Nel dubbio, vengono bloccati per revisione umana.</p>
+            </div>
+
+            <div class="faq-item">
+                <h4>Quanto costa usare la piattaforma?</h4>
+                <p>Paghi solo per le consulenze che prenoti (30, 60 o 90 minuti). Nessun abbonamento mensile obbligatorio. Il prezzo dipende dalla tariffa oraria del consulente che scegli.</p>
+            </div>
+
+            <div class="faq-item">
+                <h4>L'AI sostituisce i consulenti umani?</h4>
+                <p>No! L'AI e un assistente che aiuta a organizzare, trovare match e documentare. La consulenza vera e propria e sempre tra persone. L'AI non prende decisioni al posto tuo.</p>
+            </div>
+
+            <div class="faq-item">
+                <h4>Cos'e il Transfer Pack?</h4>
+                <p>E il documento che ricevi alla fine di ogni consulenza. Contiene: riassunto di cosa e stato discusso, decisioni prese, istruzioni operative, e una checklist per verificare che tu abbia capito e possa procedere in autonomia.</p>
+            </div>
+
+            <div class="faq-item">
+                <h4>Posso diventare consulente sulla piattaforma?</h4>
+                <p>Certo! Durante la registrazione puoi scegliere il ruolo "Consulente" o "Entrambi". Dovrai compilare il tuo profilo con competenze, tariffa oraria, disponibilita e bio.</p>
+            </div>
+
+            <div class="faq-item">
+                <h4>Come faccio a contribuire alla Hive Library?</h4>
+                <p>Dopo una consulenza o in qualsiasi momento, puoi proporre pattern, prompt o template. L'AI ti aiuta a formattarli correttamente e rimuove automaticamente dati sensibili. Poi vanno in revisione prima della pubblicazione.</p>
+            </div>
+        </div>
+
+        <!-- Page 8: Glossario -->
+        <div class="page">
+            <h2><span class="icon">📖</span> Glossario</h2>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Termine</th>
+                            <th>Spiegazione Semplice</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Orchestratore</strong></td>
+                            <td>Il "direttore d'orchestra" che coordina tutti gli agenti AI e decide chi deve fare cosa.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Agente AI</strong></td>
+                            <td>Un programma specializzato in un compito specifico (tradurre richieste, trovare match, ecc.).</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Intent</strong></td>
+                            <td>L'intenzione dietro la tua richiesta. "Voglio trovare un consulente" e un intent.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Transfer Pack</strong></td>
+                            <td>Documento di fine consulenza con riassunto, istruzioni e checklist.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Redazione</strong></td>
+                            <td>Processo di rimozione dati sensibili prima della condivisione.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Hive Library</strong></td>
+                            <td>La "biblioteca dell'alveare" - raccolta di conoscenze condivise dalla community.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pattern</strong></td>
+                            <td>Soluzione ricorrente a un problema comune, documentata per essere riutilizzata.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Matching Score</strong></td>
+                            <td>Punteggio 0-100 che indica quanto un consulente e adatto alla tua richiesta.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Gemini</strong></td>
+                            <td>Il modello AI di Google che alimenta i nostri agenti.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>API</strong></td>
+                            <td>Interfaccia che permette a diversi programmi di comunicare tra loro.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Consulting Hive Mind - Intelligenza Collettiva per Consulenze Efficaci</p>
+            <p style="margin-top: 8px; opacity: 0.7;">Documento generato automaticamente | Dicembre 2024</p>
+        </div>
+    </div>
+</body>
+</html>

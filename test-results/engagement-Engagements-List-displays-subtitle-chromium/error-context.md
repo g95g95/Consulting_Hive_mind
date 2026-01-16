@@ -1,0 +1,70 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - heading "Welcome Back" [level=1] [ref=e5]
+      - paragraph [ref=e6]: Sign in to access the Hive
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e11]:
+          - heading "Sign in to arcHIVE" [level=1] [ref=e12]
+          - paragraph [ref=e13]: Welcome back! Please sign in to continue
+        - generic [ref=e14]:
+          - generic [ref=e16]:
+            - button "Sign in with GitHub" [ref=e17] [cursor=pointer]:
+              - img "Sign in with GitHub" [ref=e18]
+            - button "Sign in with Google" [ref=e19] [cursor=pointer]:
+              - img "Sign in with Google" [ref=e20]
+            - button "Sign in with LinkedIn" [ref=e21] [cursor=pointer]:
+              - img "Sign in with LinkedIn" [ref=e22]
+          - paragraph [ref=e25]: or
+          - generic [ref=e27]:
+            - generic [ref=e28]:
+              - generic [ref=e31]:
+                - generic [ref=e33]: Email address
+                - textbox "Email address" [ref=e34]:
+                  - /placeholder: Enter your email address
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: Password
+                    - generic:
+                      - textbox "Password":
+                        - /placeholder: Enter your password
+                      - button "Show password":
+                        - img
+            - button "Continue" [ref=e37] [cursor=pointer]:
+              - generic [ref=e38]:
+                - text: Continue
+                - img [ref=e39]
+      - generic [ref=e41]:
+        - generic [ref=e42]:
+          - generic [ref=e43]: Don’t have an account?
+          - link "Sign up" [ref=e44] [cursor=pointer]:
+            - /url: http://localhost:3000/sign-up#/?redirect_url=http%3A%2F%2Flocalhost%3A3000%2Fapp%2Fengagements
+        - generic [ref=e46]:
+          - generic [ref=e48]:
+            - paragraph [ref=e49]: Secured by
+            - link "Clerk logo" [ref=e50] [cursor=pointer]:
+              - /url: https://go.clerk.com/components
+              - img [ref=e51]
+          - paragraph [ref=e56]: Development mode
+  - region "Notifications alt+T"
+  - generic [ref=e61] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e62]:
+      - img [ref=e63]
+    - generic [ref=e66]:
+      - button "Open issues overlay" [ref=e67]:
+        - generic [ref=e68]:
+          - generic [ref=e69]: "2"
+          - generic [ref=e70]: "3"
+        - generic [ref=e71]:
+          - text: Issue
+          - generic [ref=e72]: s
+      - button "Collapse issues badge" [ref=e73]:
+        - img [ref=e74]
+  - alert [ref=e76]
+```

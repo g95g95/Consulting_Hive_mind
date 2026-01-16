@@ -1,0 +1,53 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - heading "Welcome Back" [level=1] [ref=e5]
+      - paragraph [ref=e6]: Sign in to access the Hive
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e11]:
+          - heading "Sign in to" [level=1] [ref=e12]
+          - paragraph [ref=e13]: Welcome back! Please sign in to continue
+        - generic [ref=e15]:
+          - generic [ref=e16]:
+            - generic [ref=e19]:
+              - generic [ref=e21]: Email address
+              - textbox "Email address" [active] [ref=e22]:
+                - /placeholder: Enter your email address
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic: Password
+                  - generic:
+                    - textbox "Password":
+                      - /placeholder: Enter your password
+                    - button "Show password":
+                      - img
+          - button "Continue" [ref=e25] [cursor=pointer]:
+            - generic [ref=e26]:
+              - text: Continue
+              - img [ref=e27]
+      - generic [ref=e30]:
+        - generic [ref=e31]: Don’t have an account?
+        - link "Sign up" [ref=e32] [cursor=pointer]:
+          - /url: http://localhost:3000/sign-up#/?redirect_url=http%3A%2F%2Flocalhost%3A3000%2Fapp
+  - region "Notifications alt+T"
+  - generic [ref=e37] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e38]:
+      - img [ref=e39]
+    - generic [ref=e42]:
+      - button "Open issues overlay" [ref=e43]:
+        - generic [ref=e44]:
+          - generic [ref=e45]: "2"
+          - generic [ref=e46]: "3"
+        - generic [ref=e47]:
+          - text: Issue
+          - generic [ref=e48]: s
+      - button "Collapse issues badge" [ref=e49]:
+        - img [ref=e50]
+  - alert [ref=e52]
+```

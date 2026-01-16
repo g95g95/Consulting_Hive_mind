@@ -104,10 +104,10 @@ describe('RBAC - Role-Based Access Control', () => {
 
 describe('API - Validation & Error Handling', () => {
 
-  it('API-001: Hive contribute requires type, title, content', () => {
+  it('API-001: Hive contribute validates input with Zod', () => {
     const contribute = readFile('src/app/api/hive/contribute/route.ts')
-    expect(contribute).toContain('!type || !title || !content')
-    expect(contribute).toContain('Missing required fields')
+    expect(contribute).toContain('hiveContributionSchema')
+    expect(contribute).toContain('validateSchema')
     expect(contribute).toContain('status: 400')
   })
 
@@ -286,12 +286,12 @@ describe('BIZ - Business Logic', () => {
 
   it('BIZ-001: Request budget converted to cents', () => {
     const requests = readFile('src/app/api/requests/route.ts')
-    expect(requests).toContain('parseInt(budget) * 100')
+    expect(requests).toContain('parseInt(String(budget)) * 100')
   })
 
   it('BIZ-002: Offer proposed rate converted to cents', () => {
     const offers = readFile('src/app/api/offers/route.ts')
-    expect(offers).toContain('parseInt(proposedRate) * 100')
+    expect(offers).toContain('parseInt(String(proposedRate)) * 100')
   })
 
   it('BIZ-003: Request status changes to MATCHING on first offer', () => {
